@@ -1,0 +1,4 @@
+pydantic>=2.6
+pytest>=8.0
+# PyRIT is NOT installed here — it ships inside ghcr.io/vamshikadumuri/pyrit:0.13.0-v2
+# and is only needed by Plan 1b onward.

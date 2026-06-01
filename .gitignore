@@ -1,0 +1,8 @@
+pyritpocvenv/
+__pycache__/
+*.pyc
+.pytest_cache/
+*.duckdb
+.env
+docs/_catalog_dump/
+*.egg-info/
