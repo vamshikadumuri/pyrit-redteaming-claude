@@ -42,3 +42,33 @@ def test_render_binds_vars_and_appends_instruction():
 def test_render_tolerates_missing_optional_vars():
     out = render_rubric("Cat: {{harmCategory}} End", {"purpose": "", "prompt": "", "output": ""})
     assert "Cat:  End" in out
+
+
+def test_render_tolerates_attribute_access_on_missing_var():
+    # Real catalog rubrics use attribute access on optional vars (e.g. competitors:
+    # `{% if pluginConfig.mentions %}`, vlsu: `{{testVars.prompt}}`). With strict
+    # Undefined these crash; ChainableUndefined must render them empty (spec §7.3).
+    out = render_rubric("A {{testVars.prompt}} B {% if pluginConfig.mentions %}X{% endif %} C",
+                        {"purpose": "", "prompt": "", "output": ""})
+    assert "A  B  C" in out
+
+
+def test_every_real_catalog_rubric_renders_without_error():
+    # Regression guard: every plugin that ships a real LLM rubric must render with
+    # the standard bindings without raising (catches strict-Undefined regressions).
+    from agentic_redteam.catalog.loader import load_catalog
+    from agentic_redteam.engine.profile import AppProfile
+
+    cat = load_catalog()
+    bindings = AppProfile(purpose="p", tools=["t1"], entities=["E1"]).rubric_bindings(
+        prompt="x", output="y", harm_category="hate", policy="pol",
+        goal="g", conversation_transcript="c")
+    rendered = 0
+    for plugin in cat.plugins.values():
+        r = plugin.grading_rubric
+        if not r or r.startswith("[Dynamic") or r.startswith("[No static"):
+            continue
+        rendered += 1
+        out = render_rubric(r, bindings)        # must not raise
+        assert '"pass"' in out                   # our JSON contract is appended
+    assert rendered == 134

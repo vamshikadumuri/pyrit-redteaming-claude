@@ -9,7 +9,7 @@ from __future__ import annotations
 import json
 import re
 
-from jinja2 import BaseLoader, Environment
+from jinja2 import BaseLoader, ChainableUndefined, Environment, Undefined
 
 _LENGTH = re.compile(r"\.length\b")
 _OUTPUT_MARKERS = re.compile(
@@ -40,9 +40,19 @@ def strip_output_format_block(rubric: str) -> str:
     return text.rstrip()
 
 
+def _dump(value):
+    # Nunjucks `| dump` ~= json.dumps; tolerate undefined optional vars (render empty).
+    if isinstance(value, Undefined):
+        return ""
+    return json.dumps(value)
+
+
 def _env() -> Environment:
-    env = Environment(loader=BaseLoader(), autoescape=False)
-    env.filters["dump"] = lambda v: json.dumps(v)
+    # ChainableUndefined so attribute access on a missing optional var (e.g.
+    # `{{testVars.prompt}}`, `{% if pluginConfig.mentions %}`) renders empty
+    # instead of raising (spec §7.3 leniency).
+    env = Environment(loader=BaseLoader(), autoescape=False, undefined=ChainableUndefined)
+    env.filters["dump"] = _dump
     return env
 
 
