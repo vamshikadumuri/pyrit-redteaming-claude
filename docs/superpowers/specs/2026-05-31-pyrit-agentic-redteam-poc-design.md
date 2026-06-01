@@ -196,7 +196,7 @@ class Strategy:
 
 class Preset:                  # framework-level (one per family/collection)
     id: str                    # owasp_llm, owasp_agentic, owasp_api, mitre_atlas,
-                               # nist_ai_rmf, eu_ai_act, foundation, guardrails_eval, mcp, default
+                               # nist_ai_rmf, eu_ai_act, foundation, guardrails-eval, mcp, default
     framework: str             # display family
     title: str
     plugins: list[str]         # union across the framework's categories (deduped)
@@ -237,7 +237,7 @@ Ingested by **aggregating the Excel Presets sheet per framework family** (union 
 | `nist_ai_rmf` | NIST AI RMF | measure 1.1–4.3 |
 | `eu_ai_act` | EU AI Act | art5 + annex3 categories |
 | `foundation` | Collection | foundation |
-| `guardrails_eval` | Collection | guardrails-eval |
+| `guardrails-eval` | Collection | guardrails-eval |
 | `mcp` | Collection | mcp (mcp, pii, bfla, bola, sql-injection, rbac) |
 | `default` | Collection | default |
 
