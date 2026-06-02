@@ -37,6 +37,7 @@ def test_build_attack_send_uses_prompt_sending(monkeypatch):
     a = adapter.build_attack(plan, objective_target="TGT", adversarial_chat=None, scorer="SC")
     assert isinstance(a, FakePromptSending)
     assert captured["objective_target"] == "TGT"
+    assert captured["attack_scoring_config"].objective_scorer == "SC"
 
 
 def test_build_attack_multiturn_wires_adversarial_and_scorer(monkeypatch):
