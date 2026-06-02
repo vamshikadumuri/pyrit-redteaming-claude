@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block body %}
+<h1>Run History</h1>
+<a href="/" class="btn no-print">New Run</a>
+{% if rows %}
+<table>
+  <thead><tr><th>Run ID</th><th>Status</th><th>Target</th><th>Succeeded</th><th>ASR</th><th>Requested by</th><th></th></tr></thead>
+  <tbody>
+  {% for r in rows %}
+    <tr>
+      <td>{{ r.run_id }}</td>
+      <td><span class="pill pill-{{ r.status }}">{{ r.status }}</span></td>
+      <td>{{ r.target_endpoint }}</td>
+      <td>{{ r.succeeded }} / {{ r.total }}</td>
+      <td>{{ r.asr | pct }}</td>
+      <td>{{ r.requested_by }}</td>
+      <td><a href="/runs/{{ r.run_id }}">View</a></td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p>No runs yet. <a href="/">Start one.</a></p>
+{% endif %}
+{% endblock %}

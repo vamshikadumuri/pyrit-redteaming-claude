@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="p-6 max-w-5xl mx-auto">
+
+  <!-- Header -->
+  <div class="flex items-start justify-between mb-6">
+    <div>
+      <div class="flex items-center gap-3">
+        <h1 class="text-2xl font-bold text-white font-mono">{{ run_id }}</h1>
+        <span class="text-xs px-2.5 py-1 rounded-full font-medium border
+          {% if ctx.summary.status == 'running' %}bg-amber-950 text-amber-300 border-amber-800 animate-pulse
+          {% elif ctx.summary.status == 'completed' %}bg-green-950 text-green-300 border-green-800
+          {% elif ctx.summary.status == 'failed' %}bg-red-950 text-red-300 border-red-800
+          {% else %}bg-gray-800 text-gray-400 border-gray-700{% endif %}">
+          {{ ctx.summary.status }}
+        </span>
+      </div>
+      <p class="text-gray-500 text-sm mt-1">Live execution feed</p>
+    </div>
+    {% if ctx.summary.status not in ('completed', 'stopped', 'failed') %}
+    <form method="post" action="/runs/{{ run_id }}/stop">
+      <button type="submit"
+              class="border border-red-800 text-red-400 hover:bg-red-950 font-medium px-4 py-2 rounded-lg text-sm transition-colors inline-flex items-center gap-2">
+        ■ Stop Run
+      </button>
+    </form>
+    {% endif %}
+  </div>
+
+  <!-- Progress bar -->
+  {% set pct = ((ctx.summary.completed / ctx.summary.total * 100) | int) if ctx.summary.total else 0 %}
+  <div class="mb-4">
+    <div class="flex justify-between text-xs text-gray-500 mb-1.5">
+      <span>{{ ctx.summary.completed }} / {{ ctx.summary.total }} executions</span>
+      <span>{{ pct }}%</span>
+    </div>
+    <div class="h-2 bg-gray-800 rounded-full overflow-hidden">
+      <div class="h-full rounded-full transition-all duration-300"
+           style="width: {{ pct }}%; background: linear-gradient(90deg, #ef4444, #f97316);"
+           id="progress-bar-fill"></div>
+    </div>
+  </div>
+
+  <!-- Stats cards -->
+  <div class="grid grid-cols-4 gap-3 mb-6"
+       x-data="{
+         done: {{ ctx.summary.completed }},
+         total: {{ ctx.summary.total or 0 }},
+         succeeded: {{ ctx.summary.succeeded or 0 }},
+         defended: 0,
+         errors: {{ ctx.summary.errors or 0 }}
+       }"
+       id="stats-bar"
+       @htmx:after-swap.window="
+         const row = $event.detail.target.querySelector('[data-run-event=execution_done]')
+                  || $event.detail.target.closest('[data-run-event=execution_done]');
+         if (row) {
+           done++;
+           const s = row.dataset.status;
+           if (s==='succeeded') succeeded++;
+           else if (s==='defended') defended++;
+           else if (s==='error') errors++;
+           const bar = document.getElementById('progress-bar-fill');
+           if (bar && total > 0) bar.style.width = Math.round(done/total*100) + '%';
+         }
+       ">
+    <div class="bg-gray-850 border border-gray-800 rounded-xl p-4 text-center">
+      <div class="text-2xl font-bold text-white" x-text="done">{{ ctx.summary.completed }}</div>
+      <div class="text-xs text-gray-500 mt-1">Done</div>
+    </div>
+    <div class="bg-gray-850 border border-red-900/30 rounded-xl p-4 text-center">
+      <div class="text-2xl font-bold text-red-400" x-text="succeeded">{{ ctx.summary.succeeded or 0 }}</div>
+      <div class="text-xs text-gray-500 mt-1">Succeeded</div>
+    </div>
+    <div class="bg-gray-850 border border-green-900/30 rounded-xl p-4 text-center">
+      <div class="text-2xl font-bold text-green-400" x-text="defended">0</div>
+      <div class="text-xs text-gray-500 mt-1">Defended</div>
+    </div>
+    <div class="bg-gray-850 border border-amber-900/30 rounded-xl p-4 text-center">
+      <div class="text-2xl font-bold text-amber-400" x-text="errors">{{ ctx.summary.errors or 0 }}</div>
+      <div class="text-xs text-gray-500 mt-1">Errors</div>
+    </div>
+  </div>
+
+  <!-- Completed run banner (shown once run is done) -->
+  {% if ctx.summary.status in ('completed', 'stopped') %}
+  <div class="mb-4 p-4 bg-gray-800/60 border border-gray-700 rounded-xl flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <span class="text-green-400 text-xl">✓</span>
+      <div>
+        <div class="text-white font-semibold text-sm">Run {{ ctx.summary.status }} — ASR: {{ ctx.overall_asr | pct }}</div>
+        <div class="text-gray-400 text-xs mt-0.5">All executions complete</div>
+      </div>
+    </div>
+    <a href="/runs/{{ run_id }}/report"
+       class="bg-red-600 hover:bg-red-700 text-white font-medium px-4 py-2 rounded-lg text-sm transition-colors inline-flex items-center gap-2">
+      View Full Report →
+    </a>
+  </div>
+  {% endif %}
+
+  <!-- SSE-driven live elements -->
+  <div hx-ext="sse" sse-connect="/runs/{{ run_id }}/events">
+    <!-- run_finished banner: swapped in by SSE -->
+    <div id="run-status-sse" sse-swap="run_finished" hx-swap="outerHTML"></div>
+
+    <!-- Feed: execution_done events prepend rows here -->
+    <div class="bg-gray-850 border border-gray-800 rounded-xl overflow-hidden">
+      <div class="px-4 py-3 border-b border-gray-800 flex items-center justify-between">
+        <span class="text-sm font-medium text-gray-300">Live Feed</span>
+        <span class="text-xs text-gray-600">newest first</span>
+      </div>
+      <div id="feed" sse-swap="execution_done" hx-swap="afterbegin" class="divide-y divide-gray-800/50 max-h-96 overflow-y-auto">
+        {% for r in ctx.findings %}
+        <div class="flex items-center gap-3 py-2 px-3 rounded-lg text-sm border-b border-gray-800/50">
+          <span class="flex-shrink-0">✅</span>
+          <span class="flex-1 text-gray-200 font-mono text-xs truncate">{{ r.plugin_id }}</span>
+          <span class="text-gray-500 text-xs">{{ r.strategy_id }}</span>
+          <span class="text-xs px-2 py-0.5 rounded-full font-medium bg-red-900/60 text-red-300">succeeded</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,14 @@
+<div class="flex items-center gap-3 py-2 px-3 rounded-lg hover:bg-gray-800/50 transition-colors text-sm border-b border-gray-800/50 last:border-0"
+     data-run-event="execution_done" data-status="{{ status }}">
+  <span class="flex-shrink-0 text-base leading-none">
+    {%- if status == 'succeeded' -%}⚠️{%- elif status == 'error' -%}🔴{%- else -%}✅{%- endif -%}
+  </span>
+  <span class="flex-1 text-gray-200 font-mono text-xs truncate">{{ plugin_id }}</span>
+  <span class="text-gray-500 text-xs">{{ strategy_id }}</span>
+  <span class="text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0
+    {{ 'bg-red-900/60 text-red-300' if status == 'succeeded'
+       else 'bg-green-900/60 text-green-300' if status == 'defended'
+       else 'bg-amber-900/60 text-amber-300' }}">
+    {{ status }}
+  </span>
+</div>

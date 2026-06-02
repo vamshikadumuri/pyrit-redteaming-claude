@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block body %}
+<h1>Report: {{ ctx.summary.run_id }}</h1>
+<p>Status: {{ ctx.summary.status }} | Total: {{ ctx.summary.total }} | Succeeded: {{ ctx.summary.succeeded }} | ASR: {{ ctx.overall_asr | pct }}</p>
+
+<div class="no-print" style="margin-bottom: 1rem;">
+  <a href="/runs/{{ ctx.summary.run_id }}/report.json" class="btn">⬇ Download JSON</a>
+  <button type="button" onclick="window.print()" class="btn">🖨 Print / Save PDF</button>
+</div>
+
+<h2>Framework Scorecard</h2>
+{% for family, codes in ctx.framework_scorecard.items() %}
+{% if codes %}
+<h3>{{ family | upper }}</h3>
+<table>
+  <thead><tr><th>Code</th><th>Total</th><th>Succeeded</th><th>ASR</th></tr></thead>
+  <tbody>
+  {% for code, data in codes.items() %}
+    <tr>
+      <td>{{ code }}</td><td>{{ data.total }}</td><td>{{ data.succeeded }}</td>
+      <td>{{ data.asr | pct }}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+{% endfor %}
+
+<h2>Plugin x Strategy Heatmap</h2>
+<table>
+  <thead><tr><th>Plugin</th><th>Strategy</th><th>Total</th><th>ASR</th></tr></thead>
+  <tbody>
+  {% for plugin_id, strategies in ctx.asr_heatmap.items() %}
+    {% for strategy_id, data in strategies.items() %}
+    <tr>
+      <td>{{ plugin_id }}</td><td>{{ strategy_id }}</td>
+      <td>{{ data.total }}</td><td>{{ data.asr | pct }}</td>
+    </tr>
+    {% endfor %}
+  {% endfor %}
+  </tbody>
+</table>
+
+<h2>Findings ({{ ctx.findings | length }} attacks succeeded)</h2>
+{% if ctx.findings %}
+<div class="findings-list">
+  {% for f in ctx.findings %}
+  <details class="finding-{{ f.severity }}">
+    <summary>
+      <strong>{{ f.plugin_id }}</strong> / {{ f.strategy_id }}
+      <span class="severity-{{ f.severity }}">{{ f.severity }}</span>
+      {{ f.fidelity_label }}
+    </summary>
+    <div class="finding-details">
+      <p><strong>Objective:</strong> {{ f.objective }}</p>
+      <p><strong>Judge Rationale:</strong> {{ f.rationale }}</p>
+      {% if f.conversation_id %}
+      <p><strong>Conversation ID:</strong> {{ f.conversation_id }}</p>
+      <p><em>Full conversation transcript: memory-replay path (carry-forward)</em></p>
+      {% endif %}
+    </div>
+  </details>
+  {% endfor %}
+</div>
+{% else %}
+<p>No successful attacks.</p>
+{% endif %}
+
+{% if ctx.sanity_flags %}
+<h2>Sanity Flags</h2>
+<ul>
+{% for flag in ctx.sanity_flags %}
+  <li>{{ flag.plugin_id }}: {{ flag.note }} (ASR {{ flag.asr | pct }})</li>
+{% endfor %}
+</ul>
+{% endif %}
+{% endblock %}
