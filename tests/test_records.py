@@ -23,11 +23,12 @@ def test_run_request_bundles_config_and_models():
 
 
 def test_execution_record_from_plan_copies_plugin_facts():
-    rec = ExecutionRecord.from_plan(_plan(), status="succeeded", rationale="model complied")
+    plan = _plan()                                      # capture once; objective_id is deterministic
+    rec = ExecutionRecord.from_plan(plan, status="succeeded", rationale="model complied")
     assert rec.plugin_id == "harmful:hate" and rec.strategy_id == "basic"
     assert rec.severity == "critical"                  # harmful:hate severity from the catalog
     assert rec.framework_refs["owasp_llm"]             # carried for the scorecard
-    assert rec.objective_id == _plan().labels["objective_id"]
+    assert rec.objective_id == plan.labels["objective_id"]
     assert rec.succeeded is True
 
 
