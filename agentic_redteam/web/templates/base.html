@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ title }} — PyRIT Red-Team</title>
+  <script src="/static/tailwind-cdn.js"></script>
+  <script>
+    tailwind.config = {
+      theme: { extend: { colors: { 'gray-925': '#0f1117', 'gray-850': '#1a1f2e' } } }
+    }
+  </script>
+  <style>[x-cloak]{display:none!important}</style>
+</head>
+<body class="h-full bg-gray-925 text-gray-100 flex" x-data>
+
+  <!-- Sidebar -->
+  <aside class="w-60 flex-shrink-0 bg-gray-900 border-r border-gray-800 flex flex-col h-screen sticky top-0 z-10">
+    <div class="px-5 py-4 border-b border-gray-800">
+      <div class="flex items-center gap-2">
+        <span class="text-red-500 text-xl leading-none">⚡</span>
+        <span class="text-white font-bold text-base tracking-wide">PyRIT</span>
+      </div>
+      <div class="text-gray-500 text-xs mt-1">AI Red-Team Platform</div>
+    </div>
+
+    <nav class="flex-1 px-3 py-4 space-y-0.5">
+      <a href="/"
+         class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors
+                {% if current_path == '/' %}text-red-400 bg-gray-800 border-l-2 border-red-500 pl-2.5{% else %}text-gray-400 hover:text-gray-100 hover:bg-gray-800{% endif %}">
+        <span>⚡</span><span>New Run</span>
+      </a>
+      <a href="/runs"
+         class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors
+                {% if current_path.startswith('/runs') %}text-red-400 bg-gray-800 border-l-2 border-red-500 pl-2.5{% else %}text-gray-400 hover:text-gray-100 hover:bg-gray-800{% endif %}">
+        <span>📋</span><span>Run History</span>
+      </a>
+    </nav>
+
+    <div class="px-4 py-3 border-t border-gray-800 space-y-1.5">
+      {% if demo_mode %}
+      <span class="inline-flex items-center gap-1.5 bg-amber-950 text-amber-400 text-xs font-medium px-2 py-1 rounded border border-amber-800">
+        <span class="w-1.5 h-1.5 bg-amber-400 rounded-full animate-pulse"></span>DEMO MODE
+      </span>
+      {% endif %}
+      <div class="text-gray-600 text-xs">v0.13.0</div>
+    </div>
+  </aside>
+
+  <!-- Main content -->
+  <main class="flex-1 overflow-y-auto min-h-screen">
+    {% block body %}{% endblock %}
+  </main>
+
+  <script src="/static/htmx.min.js"></script>
+  <script src="/static/htmx-ext-sse.js"></script>
+  <script src="/static/alpine.min.js" defer></script>
+</body>
+</html>
