@@ -1,12 +1,16 @@
 # PyRIT Agentic Red-Teaming POC — Session Context
 
-> Handoff brief to bootstrap the next session. Last updated: 2026-06-02 (v3).
+> Handoff brief to bootstrap the next session. Last updated: 2026-06-02 (v4).
 
 ## What this is
 Building a POC for **PyRIT-based AI red-teaming of agentic apps** (OWASP Agentic / LLM / API / MCP / MITRE ATLAS / NIST / EU AI Act) for a bank, replacing Garak. Airgapped network; internal OpenAI-compatible LLM gateway (claude/gemini). **Canonical env = org ghcr image `ghcr.io/vamshikadumuri/pyrit:0.13.0-v2`** — code runs INSIDE this container (mirrors office laptop); PyRIT not pip-installed. A working `crescendo.py` already runs (local vLLM Qwen attacker → org gateway target, `SelfAskTrueFalseScorer` judge). Deliverables: **web app** (self-service runs + reports) + **notebook** (manual). No uncensored attacker LLM yet → POC uses local vLLM.
 
 ## Status (2026-06-02)
-**Spec v2 finalized. Plans 1a + 1b + 1c BUILT, reviewed (APPROVED), and CONTAINER-VERIFIED.** Laptop: **76 passed + 2 skipped** (`pyritpocvenv\Scripts\python.exe -m pytest -q`; scorer + adapter skipped — PyRIT not on laptop). **In `ghcr.io/vamshikadumuri/pyrit:0.13.0-v2` container: 86 passed, 1 skipped** (live smoke `test_crescendo_end_to_end_live` skipped — `RUN_LIVE` not set). Built subagent-driven (implementer per task + independent test re-runs + a final opus review per plan). Catalog: 157 plugins / 35 strategies / 10 presets, 146 runnable. Engine quality core done + verified: AppProfile, objective generation (grounding/diversity/dedup/top-up), rubric rendering (lenient ChainableUndefined; all 134 real rubrics render), grading + **polarity inversion**, PromptfooRubricScorer (real-API, subclasses TrueFalseScorer) + routing. **Plan 1c adds:** strategy_map (StrategySpec + combo validity + exemptions), trajectory (tool-call parsing + fidelity grading), labels (build_memory_labels), plan (family_bindings + RunConfig + AttackPlan + resolve), scorer (§7.6 fallback + live-output binding + per-family routing), adapter (build targets/attack/scorer + execute_plan), Crescendo smoke test (gated on `RUN_LIVE`). Next: write/execute **Plan 2** (orchestrator + run config + SQLite store + audit log + report queries).
+**Spec v2 finalized. Plans 1a + 1b + 1c + 2 BUILT, reviewed (APPROVED), and laptop-verified.** Laptop: **108 passed + 3 skipped** (`pyritpocvenv\Scripts\python.exe -m pytest -q`; scorer + adapter + memory_query skipped — PyRIT not on laptop). **Container (Plan 1c baseline): 86 passed, 1 skipped** — Plan 2 pure tests will bring this to ~122 passed + 1 skipped once run inside `ghcr.io/vamshikadumuri/pyrit:0.13.0-v2`. Built subagent-driven (implementer per task + two-stage review per task). Catalog: 157 plugins / 35 strategies / 10 presets, 146 runnable.
+
+**Plan 2 adds (all laptop-verified):** `records.py` (RunRequest + ExecutionRecord.from_plan + RunSummary), `store.py` (SQLite runs/executions/audit_log + CRUD), `sourcing.py` (async source router: intent/dataset-gated/generate-locally + policy injection), `progress.py` (ProgressEvent + ProgressBus asyncio fan-out), `orchestrator.py` (source→resolve→execute→persist, semaphore, stop, progress events; executor **injected** — PyRIT-free), `reports/aggregation.py` (framework_scorecard, asr_heatmap, findings, sanity_flags, build_report — pure), `reports/memory_query.py` (_result_to_record + make_executor + records_from_memory skeleton — CONTAINER). Pipeline integration test confirms the full Orchestrator→Store→build_report chain composes correctly. `scripts/run_report.py` is the container live smoke (RUN_LIVE=1).
+
+Next: write/execute **Plan 3** (FastAPI + HTMX wizard, SSE live view over ProgressBus, reports/export HTML→PDF).
 
 ### Plan 1c VERIFY results (container: 86 passed, 1 skipped)
 - **All 5 attack class imports confirmed** from `pyrit.executor.attack`: `CrescendoAttack`, `RedTeamingAttack`, `PromptSendingAttack`, `TreeOfAttacksWithPruningAttack`, `RolePlayAttack` (+ `SkeletonKeyAttack`, `ManyShotJailbreakAttack`, `ContextComplianceAttack` referenced in adapter strategy map).
@@ -71,20 +75,23 @@ v1 hand-authored a scoped ~10-plugin subset. **v2 makes `promptfoo_plugins_catal
 | `crescendo.py`, `CLAUDE.md`, `initial_prompt.txt`, `pyritpocvenv/` | pre-existing |
 
 ## Plan roadmap (to be re-cut by writing-plans)
-1a. Catalog: ingest Excel → models + loader + grouping + presets (157/35/presets) → validation.
-1b. Engine core: App-Profile, **objective generation (§6)**, **rubric scorer + routing + polarity (§7)**, strategy-map factory + fidelity/exemptions, trajectory/fidelity, labels, resolve()→AttackPlan, PyRIT adapter (Crescendo end-to-end), DuckDB smoke.
-2. Orchestrator + run config + SQLite store + audit log + report queries.
-3. Web app (FastAPI + HTMX wizard: preset OR plugins+valid combo, SSE live view, reports/export).
+1a. ✅ Catalog: ingest Excel → models + loader + grouping + presets (157/35/presets) → validation.
+1b. ✅ Engine core: App-Profile, **objective generation (§6)**, **rubric scorer + routing + polarity (§7)**, strategy-map factory + fidelity/exemptions, trajectory/fidelity, labels, resolve()→AttackPlan, PyRIT adapter (Crescendo end-to-end), DuckDB smoke.
+1c. ✅ Engine adapter: strategy_map (StrategySpec + combo validity), trajectory, labels, plan (resolve→AttackPlan, family-aware bindings), scorer (§7.6 fallback), adapter (execute_plan), Crescendo smoke.
+2. ✅ Orchestrator + SQLite store + audit log + report aggregation (records, store, sourcing, progress, orchestrator, reports/aggregation, reports/memory_query). Laptop: 108 passed + 3 skipped.
+3. Web app (FastAPI + HTMX wizard: preset OR plugins+valid combo, SSE live view over ProgressBus, reports/export HTML→PDF).
 4. Notebook parity.
 
-## Verify-in-container points remaining (Plan 1c → carry-forwards for Plan 2)
-~~`execute_async` signature~~ (confirmed, works), ~~`*Attack` class imports~~ (all 5 confirmed from `pyrit.executor.attack`), ~~scorer API~~ (verified in Plan 1b/1c — see VERIFIED block above). **Still open for Plan 2:**
-- `memory_labels=` kwarg on `execute_async`: try/except TypeError fallback in place — verify proper API when implementing memory/label queries in Plan 2.
-- Converter attachment on `PromptSendingAttack`: not on Crescendo smoke path — verify when Plan 2 exercises non-Crescendo attack strategies.
-- Memory/label query API for reports: `CentralMemory` accessor + filter-by-labels pattern (note Message/MessagePiece rename may affect `get_prompt_request_pieces`) — verify in Plan 2 report queries.
+## Verify-in-container points remaining (Plan 2 → carry-forwards for Plan 3)
+~~`execute_async` signature~~ (confirmed), ~~`*Attack` class imports~~ (all 5 confirmed), ~~scorer API~~ (verified in 1b/1c). **Still open (to be resolved in the container during Plan 3):**
+- **`AttackResult` field names** (`outcome`/`AttackOutcome.SUCCESS`, `last_score`, `last_response`, `conversation_id`): `reports/memory_query.py::_result_to_record` uses tolerant `getattr` fallbacks — tighten once confirmed in-container. Affects the live executor + observed-fidelity path.
+- **`last_response` → inline `tool_calls` path**: `_as_message_dict` degrades to `{}` (text-inferred) if the field shape doesn't match. Verify and tighten.
+- **`CentralMemory` label-query API** (`get_memory_instance()` accessor + filtering by `memory_labels={"run_id":...}`): `records_from_memory` raises `NotImplementedError` until confirmed. The **live report path reads from SQLite store** so Plan 3 works without this — it's the re-open-past-run path only.
+- **`memory_labels=` on `execute_async`**: try/except TypeError fallback in `adapter.py` — note which branch was taken in the container (needed if `records_from_memory` is ever implemented).
+- **Converter attachment on `PromptSendingAttack`**: not on the Crescendo smoke path; verify when non-Crescendo strategies are exercised.
 
 ## How to resume (cold start after a context clear)
-1. Read THIS file top-to-bottom, then skim the spec `docs/superpowers/specs/2026-05-31-pyrit-agentic-redteam-poc-design.md` (§6 generation, §7 scorer) and the built plans `docs/superpowers/plans/2026-06-01-plan-1a-...md` + `...-plan-1b-...md` + `...-plan-1c-...md`.
-2. Sanity-check the build: `pyritpocvenv\Scripts\python.exe -m pytest -q` (expect 76 passed, 2 skipped). Container full run: see the "Container run pattern" above (expect 86 passed, 1 skipped).
-3. **Next work = write + execute Plan 2** (orchestrator + run config + SQLite store + audit log + report queries). Invoke **superpowers:writing-plans** to author `docs/superpowers/plans/2026-06-02-plan-2-orchestrator.md`. Key carry-forwards: verify `memory_labels=` kwarg + converter attachment on `PromptSendingAttack` + memory/label query API (see "Verify-in-container points" above). **Use the VERIFIED PyRIT 0.13.0-v2 API block above — do not re-guess class names.**
+1. Read THIS file top-to-bottom, then skim the spec `docs/superpowers/specs/2026-05-31-pyrit-agentic-redteam-poc-design.md` (§11–14 execution/persistence/reports) and the built plans 1a, 1b, 1c, 2.
+2. Sanity-check the build: `pyritpocvenv\Scripts\python.exe -m pytest -q` (expect **108 passed, 3 skipped**). Container full run (see "Container run pattern" above) should give ~122 passed, 1 skipped.
+3. **Next work = write + execute Plan 3** (FastAPI + HTMX wizard, SSE live view over ProgressBus, run reports + HTML→PDF export). The `ProgressBus` (progress.py) + `Orchestrator` + `Store` + `build_report` are ready to wire into FastAPI routes and an HTMX/SSE frontend. Key Plan 3 design points: wizard steps (§13), SSE endpoint draining `ProgressBus`, the valid-combo UI contract (§10), and HTML export (print CSS, no heavy deps).
 4. To revisit design decisions, see the spec's §20 decisions log.
