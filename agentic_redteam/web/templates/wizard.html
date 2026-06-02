@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="p-6 max-w-5xl mx-auto">
+  <div class="mb-6">
+    <h1 class="text-2xl font-bold text-white">New Red-Team Run</h1>
+    <p class="text-gray-400 text-sm mt-1">Configure target, scope, and attack parameters step by step.</p>
+  </div>
+
+  <form id="wizard-form" method="post" action="/runs"
+        x-data="{
+          currentStep: 1,
+          updateStep() {
+            const el = document.querySelector('#step-content [data-step]');
+            if (el) this.currentStep = parseInt(el.dataset.step);
+          }
+        }"
+        @htmx:after-swap.window="updateStep()">
+
+    <div class="flex gap-6">
+      <!-- Step list -->
+      <div class="w-44 flex-shrink-0 pt-1">
+        <div class="space-y-0.5">
+          {% for step_n, step_label in [(1,'Target LLM'),(2,'Scope'),(3,'Attacker LLM'),(4,'Judge LLM'),(5,'App Profile'),(6,'Review')] %}
+          <div class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm cursor-default transition-colors"
+               :class="{
+                 'text-red-400 bg-gray-800 border-l-2 border-red-500 pl-2.5': currentStep === {{ step_n }},
+                 'text-green-400 hover:bg-gray-800 cursor-pointer': currentStep > {{ step_n }},
+                 'text-gray-600': currentStep < {{ step_n }}
+               }"
+               @click="if (currentStep > {{ step_n }}) htmx.ajax('POST', '/wizard/step/{{ step_n }}', {target: '#step-content', swap: 'innerHTML', values: Object.fromEntries(new FormData(document.getElementById('wizard-form')))})">
+            <div class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 transition-all"
+                 :class="{
+                   'bg-red-500 text-white': currentStep === {{ step_n }},
+                   'bg-green-500 text-gray-900': currentStep > {{ step_n }},
+                   'bg-gray-800 text-gray-600 border border-gray-700': currentStep < {{ step_n }}
+                 }">
+              <template x-if="currentStep <= {{ step_n }}"><span>{{ step_n }}</span></template>
+              <template x-if="currentStep > {{ step_n }}"><span>✓</span></template>
+            </div>
+            <span class="leading-tight">{{ step_label }}</span>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- Step content (htmx swap target) -->
+      <div id="step-content" class="flex-1 bg-gray-850 rounded-2xl border border-gray-800 p-6 min-h-[400px]">
+        {% include "partials/wizard_step_1.html" %}
+      </div>
+    </div>
+
+  </form>
+</div>
+{% endblock %}

@@ -27,6 +27,43 @@ from agentic_redteam.web.render import render
 _STATIC = Path(__file__).resolve().parent / "static"
 _FINAL = {"completed", "stopped", "failed"}
 
+# ── Step fields per wizard step (used to exclude them from hidden inputs) ──
+_STEP_FIELDS: dict[int, set[str]] = {
+    1: {"target_endpoint", "target_model", "target_api_key_env"},
+    2: {"preset", "plugin_ids", "strategy_ids", "scope_mode"},
+    3: {"adversarial_endpoint", "adversarial_model", "adversarial_api_key_env"},
+    4: {"judge_endpoint", "judge_model", "judge_api_key_env"},
+    5: {"purpose", "tools", "roles", "data_channels", "entities"},
+    6: {"n", "concurrency", "requested_by", "policy_text"},
+}
+_ALWAYS_EXCLUDE = {"completed_steps", "scope_mode"}
+
+
+def _hidden_fields(data: dict, current_n: int) -> str:
+    """Return hidden <input> elements for all accumulated data except current step's fields."""
+    from markupsafe import Markup, escape
+    exclude = _STEP_FIELDS.get(current_n, set()) | _ALWAYS_EXCLUDE
+    parts = []
+    for k, v in data.items():
+        if k in exclude:
+            continue
+        values = v if isinstance(v, list) else [v]
+        for val in values:
+            parts.append(f'<input type="hidden" name="{escape(k)}" value="{escape(str(val))}">')
+    return Markup("\n".join(parts))
+
+
+def _wizard_ctx(n: int, data: dict, catalog, errors: dict | None = None) -> dict:
+    from agentic_redteam.web.presenters import wizard_view
+    return {
+        "n": n,
+        "data": data,
+        "errors": errors or {},
+        "wizard": wizard_view(catalog),
+        "hidden": _hidden_fields(data, n),
+        "completed_steps": data.get("completed_steps", ""),
+    }
+
 
 def _csv(v: str) -> list[str]:
     return [x.strip() for x in (v or "").split(",") if x.strip()]
@@ -72,6 +109,66 @@ def create_app(*, store_path: str = ":memory:") -> FastAPI:
         html = render("wizard.html", title="New Run", wizard=wizard_view(catalog), request=request)
         from starlette.responses import HTMLResponse
         return HTMLResponse(html)
+
+    @app.get("/wizard/step/{n}")
+    async def wizard_step_get(n: int, request: Request):
+        from starlette.responses import HTMLResponse
+        params = dict(request.query_params)
+        # Multi-value query params (plugin_ids, strategy_ids)
+        for key in ("plugin_ids", "strategy_ids"):
+            vals = request.query_params.getlist(key)
+            if vals:
+                params[key] = vals
+        ctx = _wizard_ctx(n, params, catalog)
+        return HTMLResponse(render(f"partials/wizard_step_{n}.html", **ctx))
+
+    @app.post("/wizard/step/{n}")
+    async def wizard_step_post(n: int, request: Request):
+        """Re-render step n with form data (Back navigation / completed-step edit)."""
+        from starlette.responses import HTMLResponse
+        form = await request.form()
+        data = dict(form)
+        for key in ("plugin_ids", "strategy_ids"):
+            vals = form.getlist(key)
+            if vals:
+                data[key] = vals
+        ctx = _wizard_ctx(n, data, catalog)
+        return HTMLResponse(render(f"partials/wizard_step_{n}.html", **ctx))
+
+    @app.post("/wizard/step/{n}/next")
+    async def wizard_step_next(n: int, request: Request):
+        from starlette.responses import HTMLResponse
+        form = await request.form()
+        data = dict(form)
+        for key in ("plugin_ids", "strategy_ids"):
+            vals = form.getlist(key)
+            if vals:
+                data[key] = vals
+
+        errors: dict[str, str] = {}
+        if n == 1:
+            if not data.get("target_endpoint", "").strip():
+                errors["target_endpoint"] = "Endpoint is required"
+            if not data.get("target_model", "").strip():
+                errors["target_model"] = "Model name is required"
+        elif n == 4:
+            if not data.get("judge_endpoint", "").strip():
+                errors["judge_endpoint"] = "Endpoint is required"
+            if not data.get("judge_model", "").strip():
+                errors["judge_model"] = "Model name is required"
+
+        if errors:
+            ctx = _wizard_ctx(n, data, catalog, errors)
+            return HTMLResponse(render(f"partials/wizard_step_{n}.html", **ctx))
+
+        # Mark step n complete, advance to n+1
+        done = {int(x) for x in data.get("completed_steps", "").split(",") if x.strip().isdigit()}
+        done.add(n)
+        data["completed_steps"] = ",".join(str(x) for x in sorted(done))
+
+        next_n = min(n + 1, 6)
+        ctx = _wizard_ctx(next_n, data, catalog)
+        return HTMLResponse(render(f"partials/wizard_step_{next_n}.html", **ctx))
 
     def _build_run_request(data: dict) -> tuple[str, RunRequest]:
         """Build a RunRequest from a flat dict (form or JSON body)."""

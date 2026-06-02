@@ -1,0 +1,58 @@
+<div data-step="1" class="space-y-5">
+  <div>
+    <h2 class="text-lg font-semibold text-white">Target LLM</h2>
+    <p class="text-sm text-gray-400 mt-1">The AI system you want to red-team.</p>
+  </div>
+
+  {{ hidden }}
+  <input type="hidden" name="completed_steps" value="{{ completed_steps }}">
+
+  <div class="space-y-4">
+    <div>
+      <label class="block text-sm font-medium text-gray-300 mb-1.5">
+        Endpoint URL <span class="text-red-400">*</span>
+      </label>
+      <input type="text" name="target_endpoint"
+             value="{{ data.get('target_endpoint', '') }}"
+             placeholder="https://gateway/v1"
+             class="w-full bg-gray-800 border {{ 'border-red-500' if errors.get('target_endpoint') else 'border-gray-700' }} rounded-lg px-3 py-2.5 text-white placeholder-gray-500 text-sm focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 transition-colors">
+      {% if errors.get('target_endpoint') %}
+      <p class="mt-1 text-xs text-red-400">{{ errors['target_endpoint'] }}</p>
+      {% endif %}
+    </div>
+
+    <div>
+      <label class="block text-sm font-medium text-gray-300 mb-1.5">
+        Model Name <span class="text-red-400">*</span>
+      </label>
+      <input type="text" name="target_model"
+             value="{{ data.get('target_model', '') }}"
+             placeholder="e.g. gpt-4o, claude-3-5-sonnet"
+             class="w-full bg-gray-800 border {{ 'border-red-500' if errors.get('target_model') else 'border-gray-700' }} rounded-lg px-3 py-2.5 text-white placeholder-gray-500 text-sm focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 transition-colors">
+      {% if errors.get('target_model') %}
+      <p class="mt-1 text-xs text-red-400">{{ errors['target_model'] }}</p>
+      {% endif %}
+    </div>
+
+    <div>
+      <label class="block text-sm font-medium text-gray-300 mb-1.5">
+        API Key Env Var <span class="text-gray-500 font-normal">(optional)</span>
+      </label>
+      <input type="text" name="target_api_key_env"
+             value="{{ data.get('target_api_key_env', '') }}"
+             placeholder="OPENAI_CHAT_KEY"
+             class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-white placeholder-gray-500 text-sm focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 transition-colors">
+    </div>
+  </div>
+
+  <div class="flex justify-end pt-4 border-t border-gray-800">
+    <button type="button"
+            hx-post="/wizard/step/1/next"
+            hx-include="closest form"
+            hx-target="#step-content"
+            hx-swap="innerHTML"
+            class="bg-red-600 hover:bg-red-700 active:bg-red-800 text-white font-medium px-5 py-2.5 rounded-lg text-sm transition-colors inline-flex items-center gap-2">
+      Next <span aria-hidden>→</span>
+    </button>
+  </div>
+</div>

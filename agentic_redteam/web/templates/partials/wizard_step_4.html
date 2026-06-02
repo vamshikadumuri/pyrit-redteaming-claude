@@ -1,0 +1,54 @@
+<div data-step="4" class="space-y-5">
+  <div>
+    <h2 class="text-lg font-semibold text-white">Judge LLM</h2>
+    <p class="text-sm text-gray-400 mt-1">Scores each attack attempt. Use your internal gateway.</p>
+  </div>
+
+  {{ hidden }}
+  <input type="hidden" name="completed_steps" value="{{ completed_steps }}">
+
+  <div class="space-y-4">
+    <div>
+      <label class="block text-sm font-medium text-gray-300 mb-1.5">Endpoint URL <span class="text-red-400">*</span></label>
+      <input type="text" name="judge_endpoint"
+             value="{{ data.get('judge_endpoint', '') }}"
+             placeholder="https://gateway/v1"
+             class="w-full bg-gray-800 border {{ 'border-red-500' if errors.get('judge_endpoint') else 'border-gray-700' }} rounded-lg px-3 py-2.5 text-white placeholder-gray-500 text-sm focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 transition-colors">
+      {% if errors.get('judge_endpoint') %}<p class="mt-1 text-xs text-red-400">{{ errors['judge_endpoint'] }}</p>{% endif %}
+    </div>
+    <div>
+      <label class="block text-sm font-medium text-gray-300 mb-1.5">Model Name <span class="text-red-400">*</span></label>
+      <input type="text" name="judge_model"
+             value="{{ data.get('judge_model', '') }}"
+             placeholder="e.g. gpt-4o"
+             class="w-full bg-gray-800 border {{ 'border-red-500' if errors.get('judge_model') else 'border-gray-700' }} rounded-lg px-3 py-2.5 text-white placeholder-gray-500 text-sm focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 transition-colors">
+      {% if errors.get('judge_model') %}<p class="mt-1 text-xs text-red-400">{{ errors['judge_model'] }}</p>{% endif %}
+    </div>
+    <div>
+      <label class="block text-sm font-medium text-gray-300 mb-1.5">API Key Env Var <span class="text-gray-500 font-normal">(optional)</span></label>
+      <input type="text" name="judge_api_key_env"
+             value="{{ data.get('judge_api_key_env', '') }}"
+             placeholder="OPENAI_CHAT_KEY"
+             class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-white placeholder-gray-500 text-sm focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 transition-colors">
+    </div>
+  </div>
+
+  <div class="flex justify-between pt-4 border-t border-gray-800">
+    <button type="button"
+            hx-post="/wizard/step/3"
+            hx-include="closest form"
+            hx-target="#step-content"
+            hx-swap="innerHTML"
+            class="border border-gray-700 hover:border-gray-600 text-gray-400 hover:text-white font-medium px-4 py-2.5 rounded-lg text-sm transition-colors inline-flex items-center gap-2">
+      ← Back
+    </button>
+    <button type="button"
+            hx-post="/wizard/step/4/next"
+            hx-include="closest form"
+            hx-target="#step-content"
+            hx-swap="innerHTML"
+            class="bg-red-600 hover:bg-red-700 text-white font-medium px-5 py-2.5 rounded-lg text-sm transition-colors inline-flex items-center gap-2">
+      Next →
+    </button>
+  </div>
+</div>
