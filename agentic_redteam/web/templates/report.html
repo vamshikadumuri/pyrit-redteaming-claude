@@ -1,77 +1,208 @@
 {% extends "base.html" %}
 {% block body %}
-<h1>Report: {{ ctx.summary.run_id }}</h1>
-<p>Status: {{ ctx.summary.status }} | Total: {{ ctx.summary.total }} | Succeeded: {{ ctx.summary.succeeded }} | ASR: {{ ctx.overall_asr | pct }}</p>
+<div class="p-6 max-w-5xl mx-auto">
 
-<div class="no-print" style="margin-bottom: 1rem;">
-  <a href="/runs/{{ ctx.summary.run_id }}/report.json" class="btn">⬇ Download JSON</a>
-  <button type="button" onclick="window.print()" class="btn">🖨 Print / Save PDF</button>
-</div>
-
-<h2>Framework Scorecard</h2>
-{% for family, codes in ctx.framework_scorecard.items() %}
-{% if codes %}
-<h3>{{ family | upper }}</h3>
-<table>
-  <thead><tr><th>Code</th><th>Total</th><th>Succeeded</th><th>ASR</th></tr></thead>
-  <tbody>
-  {% for code, data in codes.items() %}
-    <tr>
-      <td>{{ code }}</td><td>{{ data.total }}</td><td>{{ data.succeeded }}</td>
-      <td>{{ data.asr | pct }}</td>
-    </tr>
-  {% endfor %}
-  </tbody>
-</table>
-{% endif %}
-{% endfor %}
-
-<h2>Plugin x Strategy Heatmap</h2>
-<table>
-  <thead><tr><th>Plugin</th><th>Strategy</th><th>Total</th><th>ASR</th></tr></thead>
-  <tbody>
-  {% for plugin_id, strategies in ctx.asr_heatmap.items() %}
-    {% for strategy_id, data in strategies.items() %}
-    <tr>
-      <td>{{ plugin_id }}</td><td>{{ strategy_id }}</td>
-      <td>{{ data.total }}</td><td>{{ data.asr | pct }}</td>
-    </tr>
-    {% endfor %}
-  {% endfor %}
-  </tbody>
-</table>
-
-<h2>Findings ({{ ctx.findings | length }} attacks succeeded)</h2>
-{% if ctx.findings %}
-<div class="findings-list">
-  {% for f in ctx.findings %}
-  <details class="finding-{{ f.severity }}">
-    <summary>
-      <strong>{{ f.plugin_id }}</strong> / {{ f.strategy_id }}
-      <span class="severity-{{ f.severity }}">{{ f.severity }}</span>
-      {{ f.fidelity_label }}
-    </summary>
-    <div class="finding-details">
-      <p><strong>Objective:</strong> {{ f.objective }}</p>
-      <p><strong>Judge Rationale:</strong> {{ f.rationale }}</p>
-      {% if f.conversation_id %}
-      <p><strong>Conversation ID:</strong> {{ f.conversation_id }}</p>
-      <p><em>Full conversation transcript: memory-replay path (carry-forward)</em></p>
-      {% endif %}
+  <!-- Header -->
+  <div class="flex items-start justify-between mb-6">
+    <div>
+      <h1 class="text-2xl font-bold text-white font-mono">{{ ctx.summary.run_id }}</h1>
+      <div class="flex items-center gap-3 mt-2">
+        <span class="text-xs px-2.5 py-1 rounded-full font-medium border
+          {% if ctx.summary.status == 'completed' %}bg-green-950 text-green-300 border-green-800
+          {% elif ctx.summary.status == 'failed' %}bg-red-950 text-red-300 border-red-800
+          {% else %}bg-gray-800 text-gray-400 border-gray-700{% endif %}">
+          {{ ctx.summary.status }}
+        </span>
+        <span class="text-gray-500 text-sm">{{ ctx.summary.total }} executions</span>
+        <span class="font-bold text-sm px-2.5 py-0.5 rounded-lg
+          {% set asr = ctx.overall_asr %}
+          {% if asr > 0.5 %}bg-red-900/50 text-red-300
+          {% elif asr > 0.2 %}bg-amber-900/50 text-amber-300
+          {% else %}bg-green-900/50 text-green-300{% endif %}">
+          ASR {{ ctx.overall_asr | pct }}
+        </span>
+      </div>
     </div>
-  </details>
-  {% endfor %}
-</div>
-{% else %}
-<p>No successful attacks.</p>
-{% endif %}
+    <div class="flex gap-2 no-print">
+      <a href="/runs/{{ ctx.summary.run_id }}/report.json"
+         class="border border-gray-700 hover:border-gray-600 text-gray-400 hover:text-white px-3 py-2 rounded-lg text-sm transition-colors inline-flex items-center gap-1.5">
+        ⬇ JSON
+      </a>
+      <button onclick="window.print()"
+              class="border border-gray-700 hover:border-gray-600 text-gray-400 hover:text-white px-3 py-2 rounded-lg text-sm transition-colors inline-flex items-center gap-1.5">
+        🖨 Print
+      </button>
+    </div>
+  </div>
 
-{% if ctx.sanity_flags %}
-<h2>Sanity Flags</h2>
-<ul>
-{% for flag in ctx.sanity_flags %}
-  <li>{{ flag.plugin_id }}: {{ flag.note }} (ASR {{ flag.asr | pct }})</li>
-{% endfor %}
-</ul>
-{% endif %}
+  <!-- Framework Scorecard -->
+  {% set has_scorecard = ctx.framework_scorecard.values() | selectattr('__bool__') | list %}
+  {% if has_scorecard %}
+  <div class="mb-6">
+    <h2 class="text-base font-semibold text-gray-200 mb-3">Framework Scorecard</h2>
+    <div class="space-y-2">
+      {% for family, codes in ctx.framework_scorecard.items() %}
+      {% if codes %}
+      <details class="bg-gray-850 border border-gray-800 rounded-xl overflow-hidden group">
+        <summary class="px-4 py-3 cursor-pointer select-none hover:bg-gray-800/50 flex items-center justify-between list-none">
+          <span class="font-medium text-sm text-gray-200 uppercase tracking-wide">{{ family }}</span>
+          <span class="text-gray-500 text-xs group-open:rotate-180 transition-transform">▼</span>
+        </summary>
+        <div class="border-t border-gray-800 overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="border-b border-gray-800">
+                <th class="px-4 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Code</th>
+                <th class="px-4 py-2.5 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+                <th class="px-4 py-2.5 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Succeeded</th>
+                <th class="px-4 py-2.5 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">ASR</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-800">
+              {% for code, data in codes.items() %}
+              <tr class="hover:bg-gray-800/30">
+                <td class="px-4 py-2.5 font-mono text-xs text-gray-300">{{ code }}</td>
+                <td class="px-4 py-2.5 text-right text-gray-400">{{ data.total }}</td>
+                <td class="px-4 py-2.5 text-right text-red-400 font-medium">{{ data.succeeded }}</td>
+                <td class="px-4 py-2.5 text-right">
+                  <span class="font-bold
+                    {% if data.asr > 0.5 %}text-red-400
+                    {% elif data.asr > 0.2 %}text-amber-400
+                    {% else %}text-green-400{% endif %}">
+                    {{ data.asr | pct }}
+                  </span>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </details>
+      {% endif %}
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Plugin × Strategy Heatmap -->
+  {% if ctx.asr_heatmap %}
+  <div class="mb-6">
+    <h2 class="text-base font-semibold text-gray-200 mb-3">Plugin × Strategy Heatmap</h2>
+    <div class="bg-gray-850 border border-gray-800 rounded-xl overflow-hidden overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="border-b border-gray-800">
+            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Plugin</th>
+            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Strategy</th>
+            <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Total</th>
+            <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">ASR</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-800">
+          {% for plugin_id, strategies in ctx.asr_heatmap.items() %}
+          {% for strategy_id, data in strategies.items() %}
+          <tr class="hover:bg-gray-800/30 transition-colors">
+            <td class="px-4 py-3 font-mono text-xs text-gray-300">{{ plugin_id }}</td>
+            <td class="px-4 py-3 text-xs text-gray-500">{{ strategy_id }}</td>
+            <td class="px-4 py-3 text-right text-gray-400">{{ data.total }}</td>
+            <td class="px-4 py-3 text-right">
+              <span class="inline-block px-2 py-0.5 rounded text-xs font-bold
+                {% if data.asr > 0.5 %}bg-red-900/60 text-red-300
+                {% elif data.asr > 0.2 %}bg-amber-900/60 text-amber-300
+                {% elif data.asr > 0 %}bg-yellow-900/60 text-yellow-300
+                {% else %}bg-green-900/60 text-green-400{% endif %}">
+                {{ data.asr | pct }}
+              </span>
+            </td>
+          </tr>
+          {% endfor %}
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Findings -->
+  <div class="mb-6">
+    <h2 class="text-base font-semibold text-gray-200 mb-3">
+      Findings
+      <span class="text-gray-500 font-normal">({{ ctx.findings | length }} attack{{ 's' if ctx.findings | length != 1 }} succeeded)</span>
+    </h2>
+    {% if ctx.findings %}
+    <div class="space-y-2">
+      {% for f in ctx.findings %}
+      <details class="bg-gray-850 border rounded-xl overflow-hidden
+        {% if f.severity == 'critical' %}border-red-800/60{% elif f.severity == 'high' %}border-amber-800/60{% else %}border-gray-800{% endif %}">
+        <summary class="px-4 py-3 cursor-pointer select-none hover:bg-gray-800/40 flex items-center gap-3 list-none">
+          <span class="text-xs px-2 py-0.5 rounded font-semibold
+            {% if f.severity == 'critical' %}bg-red-900/50 text-red-300
+            {% elif f.severity == 'high' %}bg-amber-900/50 text-amber-300
+            {% elif f.severity == 'medium' %}bg-blue-900/50 text-blue-300
+            {% else %}bg-gray-700 text-gray-400{% endif %}">
+            {{ f.severity }}
+          </span>
+          <span class="font-mono text-xs text-gray-200 font-medium">{{ f.plugin_id }}</span>
+          <span class="text-gray-500 text-xs">{{ f.strategy_id }}</span>
+          {% if f.fidelity_label %}
+          <span class="text-gray-600 text-xs ml-auto">{{ f.fidelity_label }}</span>
+          {% endif %}
+        </summary>
+        <div class="border-t border-gray-800 px-4 py-4 space-y-3">
+          <div>
+            <div class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Objective</div>
+            <p class="text-sm text-gray-300">{{ f.objective }}</p>
+          </div>
+          {% if f.rationale %}
+          <div>
+            <div class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Judge Rationale</div>
+            <p class="text-sm text-gray-400 italic">{{ f.rationale }}</p>
+          </div>
+          {% endif %}
+          {% if f.conversation_id %}
+          <div class="text-xs text-gray-600 font-mono">conversation: {{ f.conversation_id }}</div>
+          <p><em class="text-xs text-gray-500">Full conversation transcript: memory-replay path (carry-forward)</em></p>
+          {% endif %}
+        </div>
+      </details>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="bg-gray-850 border border-green-900/30 rounded-xl p-6 text-center">
+      <div class="text-green-400 text-2xl mb-2">🛡</div>
+      <div class="text-green-300 font-medium">No successful attacks</div>
+      <div class="text-gray-500 text-sm mt-1">All attempts were defended</div>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Sanity Flags -->
+  {% if ctx.sanity_flags %}
+  <div class="mb-6">
+    <h2 class="text-base font-semibold text-gray-200 mb-3">⚠ Sanity Flags</h2>
+    <div class="space-y-2">
+      {% for flag in ctx.sanity_flags %}
+      <div class="bg-amber-950/30 border border-amber-800/40 rounded-xl px-4 py-3 flex items-start gap-3">
+        <span class="text-amber-400 text-sm flex-shrink-0">⚠</span>
+        <div class="text-sm">
+          <span class="text-amber-300 font-mono">{{ flag.plugin_id }}</span>
+          <span class="text-gray-400 mx-2">—</span>
+          <span class="text-gray-300">{{ flag.note }}</span>
+          <span class="text-gray-500 ml-2">(ASR {{ flag.asr | pct }})</span>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+
+<style>
+@media print {
+  aside, .no-print { display: none !important; }
+  body { background: white; }
+  main { color: black; }
+}
+</style>
 {% endblock %}
