@@ -47,7 +47,7 @@
          done: {{ ctx.summary.completed }},
          total: {{ ctx.summary.total or 0 }},
          succeeded: {{ ctx.summary.succeeded or 0 }},
-         defended: 0,
+         defended: {{ [ctx.summary.completed - (ctx.summary.succeeded or 0) - (ctx.summary.errors or 0), 0] | max }},
          errors: {{ ctx.summary.errors or 0 }}
        }"
        id="stats-bar"

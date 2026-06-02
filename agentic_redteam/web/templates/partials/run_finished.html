@@ -1,9 +1,15 @@
 <div id="run-status-sse" class="mt-4 p-4 bg-gray-800/60 border border-gray-700 rounded-xl flex items-center justify-between">
   <div class="flex items-center gap-3">
+    {% if status == 'completed' %}
     <span class="text-green-400 text-xl">✓</span>
+    {% else %}
+    <span class="text-amber-400 text-xl">■</span>
+    {% endif %}
     <div>
       <div class="text-white font-semibold text-sm">Run {{ status }}</div>
-      <div class="text-gray-400 text-xs mt-0.5">All executions complete</div>
+      <div class="text-gray-400 text-xs mt-0.5">
+        {% if status == 'completed' %}All executions complete{% else %}Run ended early{% endif %}
+      </div>
     </div>
   </div>
   <a href="/runs/{{ run_id }}/report"
