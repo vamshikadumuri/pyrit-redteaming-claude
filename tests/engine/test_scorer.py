@@ -70,7 +70,7 @@ def test_build_scorer_routes_by_rubric_kind():
     b = {"purpose": "", "prompt": "", "output": ""}
     assert isinstance(build_scorer(cat.plugins["excessive-agency"], judge, bindings=b), PromptfooRubricScorer)
     assert isinstance(build_scorer(cat.plugins["pii:direct"], judge, bindings=b), PromptfooRubricScorer)
-    # heuristic (xstest) -> a different (substring) scorer, not the rubric scorer
+    # heuristic (xstest) -> SelfAskTrueFalseScorer (generic violation), not the rubric scorer
     assert not isinstance(build_scorer(cat.plugins["xstest"], judge, bindings=b), PromptfooRubricScorer)
 
 
