@@ -40,6 +40,7 @@ class ExecutionRecord(BaseModel):
     status: str
     score_value: str = ""                               # "true"/"false" from the scorer
     rationale: str = ""
+    response_text: str = ""                             # last response from the target model
     fidelity: str = TEXT_INFERRED                       # observed fidelity (spec §9)
     severity: str = "low"
     framework_refs: dict[str, list[str]] = Field(default_factory=dict)
@@ -52,14 +53,15 @@ class ExecutionRecord(BaseModel):
 
     @classmethod
     def from_plan(cls, plan: "AttackPlan", *, status: str, score_value: str = "",
-                  rationale: str = "", fidelity: str = TEXT_INFERRED,
+                  rationale: str = "", response_text: str = "",
+                  fidelity: str = TEXT_INFERRED,
                   conversation_id: str = "", error: str = "") -> "ExecutionRecord":
         fr = plan.plugin.framework_refs
         return cls(
             run_id=plan.run_id, plugin_id=plan.plugin.id, strategy_id=plan.strategy_id,
             objective_id=plan.labels["objective_id"], objective=plan.objective, status=status,
-            score_value=score_value, rationale=rationale, fidelity=fidelity,
-            severity=plan.plugin.severity.value,
+            score_value=score_value, rationale=rationale, response_text=response_text,
+            fidelity=fidelity, severity=plan.plugin.severity.value,
             framework_refs={"owasp_llm": fr.owasp_llm, "owasp_agentic": fr.owasp_agentic,
                             "owasp_api": fr.owasp_api, "atlas": fr.atlas},
             conversation_id=conversation_id, error=error,

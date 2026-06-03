@@ -54,8 +54,19 @@ def asr_heatmap(records: list[ExecutionRecord]) -> dict:
 def findings(records: list[ExecutionRecord]) -> list[dict]:
     return [{"plugin_id": r.plugin_id, "strategy_id": r.strategy_id, "objective": r.objective,
              "severity": r.severity, "fidelity": r.fidelity, "rationale": r.rationale,
+             "score_value": r.score_value, "response_text": r.response_text,
              "conversation_id": r.conversation_id}
             for r in records if r.succeeded]
+
+
+def all_executions(records: list[ExecutionRecord]) -> list[dict]:
+    """All execution records ordered by status (succeeded first) for the transparency table."""
+    order = {"succeeded": 0, "defended": 1, "error": 2}
+    sorted_records = sorted(records, key=lambda r: (order.get(r.status, 9), r.plugin_id))
+    return [{"plugin_id": r.plugin_id, "strategy_id": r.strategy_id, "objective": r.objective,
+             "status": r.status, "score_value": r.score_value, "rationale": r.rationale,
+             "response_text": r.response_text, "error": r.error}
+            for r in sorted_records]
 
 
 def sanity_flags(records: list[ExecutionRecord]) -> list[dict]:
@@ -80,12 +91,19 @@ def overall_asr(records: list[ExecutionRecord]) -> float:
 
 def build_report(records: list[ExecutionRecord]) -> dict:
     """The full JSON report (spec §14). Printable HTML/PDF export is Plan 3 (web)."""
+    graded = _graded(records)
+    succeeded_count = sum(1 for r in graded if r.succeeded)
+    defended_count = len(graded) - succeeded_count
+    errors_count = sum(1 for r in records if r.status == "error")
     return {
         "overall_asr": overall_asr(records),
         "framework_scorecard": framework_scorecard(records),
         "asr_heatmap": asr_heatmap(records),
         "findings": findings(records),
+        "all_executions": all_executions(records),
         "sanity_flags": sanity_flags(records),
         "total_executions": len(records),
-        "errors": sum(1 for r in records if r.status == "error"),
+        "succeeded_count": succeeded_count,
+        "defended_count": defended_count,
+        "errors": errors_count,
     }

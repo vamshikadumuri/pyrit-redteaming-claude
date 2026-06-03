@@ -34,6 +34,28 @@ def _as_message_dict(response) -> dict:
     return getattr(response, "raw_message", None) or {}
 
 
+def _extract_response_text(response) -> str:
+    """Best-effort text extraction from AttackResult.last_response.
+    VERIFY the Message/content structure in-container."""
+    if response is None:
+        return ""
+    if isinstance(response, str):
+        return response
+    if isinstance(response, dict):
+        content = response.get("content", "")
+        if isinstance(content, list):
+            return " ".join(
+                c.get("text", "") for c in content
+                if isinstance(c, dict) and c.get("type") == "text"
+            )
+        return str(content or "")
+    for attr in ("text", "content", "value"):
+        val = getattr(response, attr, None)
+        if isinstance(val, str) and val:
+            return val
+    return ""
+
+
 def _result_to_record(plan: AttackPlan, result) -> ExecutionRecord:
     succeeded = _outcome_succeeded(result)
     score = getattr(result, "last_score", None)            # VERIFY field name
@@ -43,9 +65,11 @@ def _result_to_record(plan: AttackPlan, result) -> ExecutionRecord:
     last = getattr(result, "last_response", None)          # VERIFY field name
     tool_calls = parse_tool_calls(_as_message_dict(last)) if last is not None else []
     fidelity = grading_fidelity(tool_calls=tool_calls)
+    response_text = _extract_response_text(last)
     return ExecutionRecord.from_plan(
         plan, status="succeeded" if succeeded else "defended", score_value=score_value,
-        rationale=rationale, fidelity=fidelity, conversation_id=conv_id)
+        rationale=rationale, fidelity=fidelity, conversation_id=conv_id,
+        response_text=response_text)
 
 
 def make_executor(*, target_config: ModelConfig, judge_config: ModelConfig,

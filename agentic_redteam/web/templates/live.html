@@ -51,15 +51,18 @@
          errors: {{ ctx.summary.errors or 0 }}
        }"
        id="stats-bar"
-       @htmx:after-swap.window="
-         const row = $event.detail.target.querySelector('[data-run-event=execution_done]')
-                  || $event.detail.target.closest('[data-run-event=execution_done]');
-         if (row) {
+       @htmx:sseMessage.window="
+         if ($event.detail.type === 'execution_done') {
            done++;
-           const s = row.dataset.status;
-           if (s==='succeeded') succeeded++;
-           else if (s==='defended') defended++;
-           else if (s==='error') errors++;
+           const tmp = document.createElement('div');
+           tmp.innerHTML = $event.detail.data;
+           const row = tmp.querySelector('[data-run-event=execution_done]');
+           if (row) {
+             const s = row.dataset.status;
+             if (s==='succeeded') succeeded++;
+             else if (s==='defended') defended++;
+             else if (s==='error') errors++;
+           }
            const bar = document.getElementById('progress-bar-fill');
            if (bar && total > 0) bar.style.width = Math.round(done/total*100) + '%';
          }

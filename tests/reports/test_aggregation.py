@@ -60,5 +60,7 @@ def test_overall_asr_and_build_report_shape():
     assert overall_asr(recs) == 0.5                    # 1 success / 2 graded (error excluded)
     rep = build_report(recs)
     assert set(rep) == {"overall_asr", "framework_scorecard", "asr_heatmap", "findings",
-                        "sanity_flags", "total_executions", "errors"}
+                        "all_executions", "sanity_flags", "total_executions",
+                        "succeeded_count", "defended_count", "errors"}
     assert rep["total_executions"] == 3 and rep["errors"] == 1
+    assert rep["succeeded_count"] == 1 and rep["defended_count"] == 1

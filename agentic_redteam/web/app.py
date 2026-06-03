@@ -88,8 +88,31 @@ def _sse(event: str, html: str) -> str:
     return f"event: {event}\ndata: {payload}\n\n"
 
 
+async def _parse_form(request: Request) -> dict:
+    """Parse application/x-www-form-urlencoded without python-multipart."""
+    from urllib.parse import parse_qs
+    body = await request.body()
+    raw = parse_qs(body.decode("utf-8"), keep_blank_values=True)
+    data: dict = {}
+    for k, vals in raw.items():
+        data[k] = vals if k in ("plugin_ids", "strategy_ids") or len(vals) > 1 else vals[0]
+    return data
+
+
 def create_app(*, store_path: str = ":memory:") -> FastAPI:
-    app = FastAPI()
+    from contextlib import asynccontextmanager
+
+    @asynccontextmanager
+    async def _lifespan(application: FastAPI):
+        if os.environ.get("DEMO_MODE") != "1":
+            try:
+                from pyrit.setup import IN_MEMORY, initialize_pyrit_async
+                await initialize_pyrit_async(memory_db_type=IN_MEMORY)
+            except ImportError:
+                pass  # PyRIT not installed (laptop / test environment)
+        yield
+
+    app = FastAPI(lifespan=_lifespan)
     catalog = load_catalog()
     store = Store(store_path)
     if os.environ.get("DEMO_MODE") == "1":
@@ -107,9 +130,8 @@ def create_app(*, store_path: str = ":memory:") -> FastAPI:
 
     @app.get("/")
     async def wizard_route(request: Request):
-        from agentic_redteam.web.presenters import wizard_view
-        html = render("wizard.html", title="New Run", wizard=wizard_view(catalog), request=request)
         from starlette.responses import HTMLResponse
+        html = render("wizard.html", title="New Run", **_wizard_ctx(1, {}, catalog), request=request)
         return HTMLResponse(html)
 
     @app.get("/wizard/step/{n}")
@@ -128,24 +150,14 @@ def create_app(*, store_path: str = ":memory:") -> FastAPI:
     async def wizard_step_post(n: int, request: Request):
         """Re-render step n with form data (Back navigation / completed-step edit)."""
         from starlette.responses import HTMLResponse
-        form = await request.form()
-        data = dict(form)
-        for key in ("plugin_ids", "strategy_ids"):
-            vals = form.getlist(key)
-            if vals:
-                data[key] = vals
+        data = await _parse_form(request)
         ctx = _wizard_ctx(n, data, catalog)
         return HTMLResponse(render(f"partials/wizard_step_{n}.html", **ctx))
 
     @app.post("/wizard/step/{n}/next")
     async def wizard_step_next(n: int, request: Request):
         from starlette.responses import HTMLResponse
-        form = await request.form()
-        data = dict(form)
-        for key in ("plugin_ids", "strategy_ids"):
-            vals = form.getlist(key)
-            if vals:
-                data[key] = vals
+        data = await _parse_form(request)
 
         errors: dict[str, str] = {}
         if n == 1:
@@ -230,8 +242,7 @@ def create_app(*, store_path: str = ":memory:") -> FastAPI:
         if "application/json" in content_type:
             data = await request.json()
         else:
-            form = await request.form()
-            data = dict(form)
+            data = await _parse_form(request)
 
         run_id, req = _build_run_request(data)
         manager.start(req)

@@ -7,43 +7,66 @@
   <script src="/static/tailwind-cdn.js"></script>
   <script>
     tailwind.config = {
-      theme: { extend: { colors: { 'gray-925': '#0f1117', 'gray-850': '#1a1f2e' } } }
+      theme: {
+        extend: {
+          colors: {
+            'gray-925': '#0d1117',
+            'gray-850': '#161b22',
+          }
+        }
+      }
     }
   </script>
-  <style>[x-cloak]{display:none!important}</style>
+  <style>
+    [x-cloak]{display:none!important}
+    .sidebar-glow { box-shadow: inset -1px 0 0 rgba(239,68,68,0.08); }
+  </style>
 </head>
 <body class="h-full bg-gray-925 text-gray-100 flex" x-data>
 
   <!-- Sidebar -->
-  <aside class="w-60 flex-shrink-0 bg-gray-900 border-r border-gray-800 flex flex-col h-screen sticky top-0 z-10">
-    <div class="px-5 py-4 border-b border-gray-800">
-      <div class="flex items-center gap-2">
-        <span class="text-red-500 text-xl leading-none">⚡</span>
-        <span class="text-white font-bold text-base tracking-wide">PyRIT</span>
+  <aside class="w-60 flex-shrink-0 bg-gray-850 border-r border-gray-800/80 flex flex-col h-screen sticky top-0 z-10 sidebar-glow">
+
+    <!-- Logo -->
+    <div class="px-5 py-5 border-b border-gray-800/60">
+      <div class="flex items-center gap-2.5">
+        <div class="w-8 h-8 rounded-lg bg-red-600/20 border border-red-500/30 flex items-center justify-center flex-shrink-0">
+          <span class="text-red-400 text-base leading-none">⚡</span>
+        </div>
+        <div>
+          <div class="text-white font-bold text-sm tracking-wide leading-tight">PyRIT</div>
+          <div class="text-gray-500 text-xs leading-tight">Red-Team Platform</div>
+        </div>
       </div>
-      <div class="text-gray-500 text-xs mt-1">AI Red-Team Platform</div>
     </div>
 
-    <nav class="flex-1 px-3 py-4 space-y-0.5">
+    <!-- Nav -->
+    <nav class="flex-1 px-3 py-4 space-y-1">
       <a href="/"
-         class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors
-                {% if current_path == '/' %}text-red-400 bg-gray-800 border-l-2 border-red-500 pl-2.5{% else %}text-gray-400 hover:text-gray-100 hover:bg-gray-800{% endif %}">
-        <span>⚡</span><span>New Run</span>
+         class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all
+                {% if current_path == '/' %}text-white bg-red-600/20 border border-red-500/20{% else %}text-gray-400 hover:text-gray-100 hover:bg-gray-800/60{% endif %}">
+        <span class="text-base leading-none {% if current_path == '/' %}text-red-400{% endif %}">⚡</span>
+        <span>New Run</span>
       </a>
       <a href="/runs"
-         class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors
-                {% if current_path.startswith('/runs') %}text-red-400 bg-gray-800 border-l-2 border-red-500 pl-2.5{% else %}text-gray-400 hover:text-gray-100 hover:bg-gray-800{% endif %}">
-        <span>📋</span><span>Run History</span>
+         class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all
+                {% if current_path.startswith('/runs') %}text-white bg-red-600/20 border border-red-500/20{% else %}text-gray-400 hover:text-gray-100 hover:bg-gray-800/60{% endif %}">
+        <span class="text-base leading-none {% if current_path.startswith('/runs') %}text-red-400{% endif %}">📋</span>
+        <span>Run History</span>
       </a>
     </nav>
 
-    <div class="px-4 py-3 border-t border-gray-800 space-y-1.5">
+    <!-- Footer -->
+    <div class="px-4 py-4 border-t border-gray-800/60 space-y-2">
       {% if demo_mode %}
-      <span class="inline-flex items-center gap-1.5 bg-amber-950 text-amber-400 text-xs font-medium px-2 py-1 rounded border border-amber-800">
+      <span class="inline-flex items-center gap-1.5 bg-amber-950/60 text-amber-400 text-xs font-medium px-2.5 py-1 rounded-lg border border-amber-800/50">
         <span class="w-1.5 h-1.5 bg-amber-400 rounded-full animate-pulse"></span>DEMO MODE
       </span>
       {% endif %}
-      <div class="text-gray-600 text-xs">v0.13.0</div>
+      <div class="flex items-center justify-between">
+        <div class="text-gray-600 text-xs font-mono">v0.13.0</div>
+        <div class="text-gray-700 text-xs">PyRIT</div>
+      </div>
     </div>
   </aside>
 

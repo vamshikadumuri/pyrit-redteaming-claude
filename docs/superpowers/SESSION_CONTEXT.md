@@ -1,16 +1,36 @@
 # PyRIT Agentic Red-Teaming POC — Session Context
 
-> Handoff brief to bootstrap the next session. Last updated: 2026-06-02 (v4).
+> Handoff brief to bootstrap the next session. Last updated: 2026-06-02 (v6).
 
 ## What this is
 Building a POC for **PyRIT-based AI red-teaming of agentic apps** (OWASP Agentic / LLM / API / MCP / MITRE ATLAS / NIST / EU AI Act) for a bank, replacing Garak. Airgapped network; internal OpenAI-compatible LLM gateway (claude/gemini). **Canonical env = org ghcr image `ghcr.io/vamshikadumuri/pyrit:0.13.0-v2`** — code runs INSIDE this container (mirrors office laptop); PyRIT not pip-installed. A working `crescendo.py` already runs (local vLLM Qwen attacker → org gateway target, `SelfAskTrueFalseScorer` judge). Deliverables: **web app** (self-service runs + reports) + **notebook** (manual). No uncensored attacker LLM yet → POC uses local vLLM.
 
 ## Status (2026-06-02)
-**Spec v2 finalized. Plans 1a + 1b + 1c + 2 BUILT, reviewed (APPROVED), and laptop-verified.** Laptop: **108 passed + 3 skipped** (`pyritpocvenv\Scripts\python.exe -m pytest -q`; scorer + adapter + memory_query skipped — PyRIT not on laptop). **Container (Plan 1c baseline): 86 passed, 1 skipped** — Plan 2 pure tests will bring this to ~122 passed + 1 skipped once run inside `ghcr.io/vamshikadumuri/pyrit:0.13.0-v2`. Built subagent-driven (implementer per task + two-stage review per task). Catalog: 157 plugins / 35 strategies / 10 presets, 146 runnable.
+**Spec v2 finalized. Plans 1a + 1b + 1c + 2 + 3 + 4 + UI Redesign ALL BUILT and verified.** Laptop: **124 passed + 4 skipped** (`pyritpocvenv\Scripts\python.exe -m pytest -q`). **Container (full suite): 138 passed, 1 skipped** (incl. FastAPI e2e test in DEMO_MODE). Built subagent-driven (implementer per task + two-stage review per task). Catalog: 157 plugins / 35 strategies / 10 presets, 146 runnable.
 
-**Plan 2 adds (all laptop-verified):** `records.py` (RunRequest + ExecutionRecord.from_plan + RunSummary), `store.py` (SQLite runs/executions/audit_log + CRUD), `sourcing.py` (async source router: intent/dataset-gated/generate-locally + policy injection), `progress.py` (ProgressEvent + ProgressBus asyncio fan-out), `orchestrator.py` (source→resolve→execute→persist, semaphore, stop, progress events; executor **injected** — PyRIT-free), `reports/aggregation.py` (framework_scorecard, asr_heatmap, findings, sanity_flags, build_report — pure), `reports/memory_query.py` (_result_to_record + make_executor + records_from_memory skeleton — CONTAINER). Pipeline integration test confirms the full Orchestrator→Store→build_report chain composes correctly. `scripts/run_report.py` is the container live smoke (RUN_LIVE=1).
+**Plan 3 adds (all verified):** `agentic_redteam/web/` package — `presenters.py`, `render.py`, `manager.py`, `demo.py`, `live.py`, `app.py` (FastAPI routes, SSE, DEMO_MODE toggle). Serve script: `scripts/serve.py` (uvicorn). README.
 
-Next: write/execute **Plan 3** (FastAPI + HTMX wizard, SSE live view over ProgressBus, reports/export HTML→PDF).
+**Plan 4 DONE:** `notebooks/pyrit_redteam_poc.ipynb` — 3 examples (preset demo run, custom Crescendo live/demo, explore results). `tests/test_notebook.py` 3 passed.
+
+**UI Redesign DONE (2026-06-02):** Replaced vanilla JS/CSS with **htmx 2.0.4 + Alpine.js 3.14.9 + Tailwind CSS Play CDN** (all committed as static files to `agentic_redteam/web/static/`). Dark Pro theme across all pages. 7 commits on `master`:
+
+| Commit | What |
+|--------|------|
+| `b34eaee` | Downloaded htmx/Alpine/Tailwind to `agentic_redteam/web/static/` |
+| `2ec37e6` | `render.py` now injects `current_path` + `demo_mode`; `base.html` Dark Pro sidebar shell |
+| `2b96435` | htmx multi-step wizard: 3 new routes (`GET/POST /wizard/step/{n}`, `POST /wizard/step/{n}/next`), 6 Jinja2 partials (`partials/wizard_step_{1-6}.html`), `wizard.html` rewritten with Alpine step-list |
+| `fc2b96a` | SSE generator now emits named events (`execution_done`/`run_finished`) with pre-rendered HTML fragments; `live.html` rewritten with htmx-sse, Alpine stats cards, progress bar |
+| `7df7c64` | Fix: `defended` counter initial value + `run_finished` banner for non-completed status |
+| `ff46728` | `report.html` rewritten: framework scorecard, heatmap, findings accordion, sanity flags, print CSS |
+| `8ee4386` | `runs.html` rewritten: Dark Pro table with status pills + ASR bar; deleted old `app.css`/`app.js` |
+
+**Key architecture changes from UI redesign:**
+- `render.py::render()` now accepts optional `request` kwarg → injects `current_path` (sidebar nav highlight) and `demo_mode` (DEMO MODE badge). All 4 route handlers pass `request=request`.
+- `_hidden_fields(data, current_n)` + `_wizard_ctx(n, data, catalog, errors)` are module-level helpers in `app.py`; wizard routes are inside `create_app()`.
+- SSE now emits `event: NAME\ndata: HTML\n\n` (named SSE for htmx-sse routing), not raw JSON dicts.
+- Templates use `partials/` subdirectory for wizard steps + feed_row + run_finished.
+
+**Known issue (htmx event name):** Templates use `@htmx:after-swap.window` (Alpine kebab-case) but htmx 2.x dispatches `htmx:afterSwap` (camelCase). If live stats cards don't increment during active SSE streaming in the browser, change `htmx:after-swap` → `htmx:afterSwap` in `live.html` and `wizard.html`.
 
 ### Plan 1c VERIFY results (container: 86 passed, 1 skipped)
 - **All 5 attack class imports confirmed** from `pyrit.executor.attack`: `CrescendoAttack`, `RedTeamingAttack`, `PromptSendingAttack`, `TreeOfAttacksWithPruningAttack`, `RolePlayAttack` (+ `SkeletonKeyAttack`, `ManyShotJailbreakAttack`, `ContextComplianceAttack` referenced in adapter strategy map).
@@ -68,7 +88,9 @@ v1 hand-authored a scoped ~10-plugin subset. **v2 makes `promptfoo_plugins_catal
 | `docs/superpowers/plans/2026-06-01-plan-1b-generation-and-grading.md` | **Plan 1b (ready after 1a).** The quality core: AppProfile, objective generation (grounding/diversity/dedup/top-up), rubric rendering (Nunjucks→Jinja2), grading + **polarity inversion**, PromptfooRubricScorer. Pure logic PyRIT-free + mock-tested; only `scorer.py` needs the container. |
 | `docs/superpowers/plans/2026-05-31-engine-catalog-foundation.md` | **SUPERSEDED** (v1, scoped 10-plugin). Banner added; kept for history. |
 | `docs/superpowers/plans/2026-06-02-plan-1c-engine-adapter.md` | **Plan 1c (BUILT + VERIFIED).** strategy_map + trajectory + labels + resolve→AttackPlan + PyRIT adapter + Crescendo smoke. |
-| `docs/superpowers/plans/` (TODO) | **Plan 2** (orchestrator+store+reports), **Plan 3** (web), **Plan 4** (notebook). |
+| `docs/superpowers/plans/2026-06-02-plan-4-notebook.md` | **Plan 4 (done)** — notebook parity. |
+| `docs/superpowers/plans/2026-06-02-ui-redesign-htmx-tailwind.md` | **UI Redesign (done)** — htmx + Alpine + Tailwind Dark Pro theme. All 6 tasks implemented. |
+| `notebooks/pyrit_redteam_poc.ipynb` | **The notebook** — 3 examples (preset, Crescendo, explore). |
 | `scripts/dump_xlsx.py` | **(built, works)** stdlib-only xlsx→tsv reader. Ingestion (`ingest/ingest_catalog.py`) will reuse this approach (no pandas/openpyxl available/airgapped). |
 | `docs/_catalog_dump/*.tsv` | Inspection dump of the 4 sheets (Plugins/Presets/StrategyMap/About) — handy reference during implementation. |
 | `claude_code_implementation_prompt.md` | Reference brief that informed v2 (full-catalog ingest, generic rubric adapter, generate-locally, strategy-map factory, polarity, dataset mirroring). |
@@ -79,10 +101,11 @@ v1 hand-authored a scoped ~10-plugin subset. **v2 makes `promptfoo_plugins_catal
 1b. ✅ Engine core: App-Profile, **objective generation (§6)**, **rubric scorer + routing + polarity (§7)**, strategy-map factory + fidelity/exemptions, trajectory/fidelity, labels, resolve()→AttackPlan, PyRIT adapter (Crescendo end-to-end), DuckDB smoke.
 1c. ✅ Engine adapter: strategy_map (StrategySpec + combo validity), trajectory, labels, plan (resolve→AttackPlan, family-aware bindings), scorer (§7.6 fallback), adapter (execute_plan), Crescendo smoke.
 2. ✅ Orchestrator + SQLite store + audit log + report aggregation (records, store, sourcing, progress, orchestrator, reports/aggregation, reports/memory_query). Laptop: 108 passed + 3 skipped.
-3. Web app (FastAPI + HTMX wizard: preset OR plugins+valid combo, SSE live view over ProgressBus, reports/export HTML→PDF).
-4. Notebook parity.
+3. ✅ Web app (FastAPI wizard + SSE live view + reports + export + history). Laptop: 121 passed + 4 skipped. Container: 138 passed, 1 skipped. Demo mode (DEMO_MODE=1) fully offline.
+4. ✅ Notebook parity (`notebooks/pyrit_redteam_poc.ipynb` — 3 examples, 3 tests).
+UI. ✅ **UI Redesign** — htmx 2.0.4 + Alpine.js 3.14.9 + Tailwind CSS Play CDN (all served from static/). Dark Pro theme. Laptop: **124 passed + 4 skipped** (unchanged). Container test count TBD (UI changes are template-only; container e2e tests should still pass).
 
-## Verify-in-container points remaining (Plan 2 → carry-forwards for Plan 3)
+## Verify-in-container points remaining (carry-forwards for Plan 4)
 ~~`execute_async` signature~~ (confirmed), ~~`*Attack` class imports~~ (all 5 confirmed), ~~scorer API~~ (verified in 1b/1c). **Still open (to be resolved in the container during Plan 3):**
 - **`AttackResult` field names** (`outcome`/`AttackOutcome.SUCCESS`, `last_score`, `last_response`, `conversation_id`): `reports/memory_query.py::_result_to_record` uses tolerant `getattr` fallbacks — tighten once confirmed in-container. Affects the live executor + observed-fidelity path.
 - **`last_response` → inline `tool_calls` path**: `_as_message_dict` degrades to `{}` (text-inferred) if the field shape doesn't match. Verify and tighten.
@@ -91,7 +114,11 @@ v1 hand-authored a scoped ~10-plugin subset. **v2 makes `promptfoo_plugins_catal
 - **Converter attachment on `PromptSendingAttack`**: not on the Crescendo smoke path; verify when non-Crescendo strategies are exercised.
 
 ## How to resume (cold start after a context clear)
-1. Read THIS file top-to-bottom, then skim the spec `docs/superpowers/specs/2026-05-31-pyrit-agentic-redteam-poc-design.md` (§11–14 execution/persistence/reports) and the built plans 1a, 1b, 1c, 2.
-2. Sanity-check the build: `pyritpocvenv\Scripts\python.exe -m pytest -q` (expect **108 passed, 3 skipped**). Container full run (see "Container run pattern" above) should give ~122 passed, 1 skipped.
-3. **Next work = write + execute Plan 3** (FastAPI + HTMX wizard, SSE live view over ProgressBus, run reports + HTML→PDF export). The `ProgressBus` (progress.py) + `Orchestrator` + `Store` + `build_report` are ready to wire into FastAPI routes and an HTMX/SSE frontend. Key Plan 3 design points: wizard steps (§13), SSE endpoint draining `ProgressBus`, the valid-combo UI contract (§10), and HTML export (print CSS, no heavy deps).
-4. To revisit design decisions, see the spec's §20 decisions log.
+1. Read THIS file top-to-bottom, then skim the spec `docs/superpowers/specs/2026-05-31-pyrit-agentic-redteam-poc-design.md`.
+2. Sanity-check the build: `pyritpocvenv\Scripts\python.exe -m pytest -q` (expect **124 passed, 4 skipped**).
+3. Smoke-test the web UI: `$env:DEMO_MODE="1"; pyritpocvenv\Scripts\python.exe scripts/serve.py` → open http://localhost:8006. Verify: Dark Pro sidebar, wizard loads step 1, Next advances to step 2, run launches and live feed streams.
+4. **All planned work is complete.** Possible next steps:
+   - **Container verification**: run `docker run --rm --entrypoint python -e PYTHONPATH=/work -e DEMO_MODE=1 -v "D:/CodeandLearn/Vamshi/Projects/pyrit:/work" -w /work ghcr.io/vamshikadumuri/pyrit:0.13.0-v2 -m pytest -q` to verify container tests still pass after UI redesign.
+   - **htmx event name fix**: if live stats cards don't increment in the browser during active SSE, change `@htmx:after-swap.window` → `@htmx:afterSwap.window` in `live.html` and `wizard.html`.
+   - **Verify-in-container carry-forwards**: `AttackResult` field names, `last_response` tool_calls shape, `CentralMemory` label-query API (see "Verify-in-container points remaining" section above).
+5. To revisit design decisions, see the spec's §20 decisions log.

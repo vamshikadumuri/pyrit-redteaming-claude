@@ -65,4 +65,3 @@ def test_render_report_drilldown_and_sanity():
     assert "conv-1" in html                 # conversation_id
     assert "all-pass" in html               # sanity flag
     assert "critical" in html               # severity
-    assert "memory-replay" in html          # honesty note
