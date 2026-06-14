@@ -270,53 +270,56 @@ def create_app(
 
     @app.get("/runs/{run_id}/events")
     async def run_events(run_id: str, request: Request):
-        q = manager.bus.subscribe()
+        q, unsub = manager.bus.subscribe()
 
         async def generate():
-            # Replay already-completed executions from the store
-            for rec in await store.get_executions(run_id):
-                html = render("partials/feed_row.html",
-                              plugin_id=rec.plugin_id,
-                              strategy_id=rec.strategy_id,
-                              status=rec.status)
-                yield _sse("execution_done", html)
-
-            # Check if run is already final
-            row = await store.get_run(run_id)
-            if row and row.get("status") in _FINAL:
-                html = render("partials/run_finished.html",
-                              run_id=run_id, status=row["status"])
-                yield _sse("run_finished", html)
-                return
-
-            # Stream live events
-            while True:
-                if await request.is_disconnected():
-                    break
-                try:
-                    event = await asyncio.wait_for(q.get(), timeout=1.0)
-                except asyncio.TimeoutError:
-                    continue
-
-                if event.run_id != run_id:
-                    continue
-
-                if event.kind == "execution_done":
+            try:
+                # Replay already-completed executions from the store
+                for rec in await store.get_executions(run_id):
                     html = render("partials/feed_row.html",
-                                  plugin_id=event.plugin_id,
-                                  strategy_id=event.strategy_id,
-                                  status=event.status)
+                                  plugin_id=rec.plugin_id,
+                                  strategy_id=rec.strategy_id,
+                                  status=rec.status)
                     yield _sse("execution_done", html)
-                elif event.kind == "run_finished":
-                    row = await store.get_run(run_id)
-                    final_status = row["status"] if row else "completed"
+
+                # Check if run is already final
+                row = await store.get_run(run_id)
+                if row and row.get("status") in _FINAL:
                     html = render("partials/run_finished.html",
-                                  run_id=run_id, status=final_status)
+                                  run_id=run_id, status=row["status"])
                     yield _sse("run_finished", html)
-                    break
-                else:
-                    d = event.model_dump()
-                    yield _sse(event.kind, json.dumps(d))
+                    return
+
+                # Stream live events
+                while True:
+                    if await request.is_disconnected():
+                        break
+                    try:
+                        event = await asyncio.wait_for(q.get(), timeout=1.0)
+                    except asyncio.TimeoutError:
+                        continue
+
+                    if event.run_id != run_id:
+                        continue
+
+                    if event.kind == "execution_done":
+                        html = render("partials/feed_row.html",
+                                      plugin_id=event.plugin_id,
+                                      strategy_id=event.strategy_id,
+                                      status=event.status)
+                        yield _sse("execution_done", html)
+                    elif event.kind == "run_finished":
+                        row = await store.get_run(run_id)
+                        final_status = row["status"] if row else "completed"
+                        html = render("partials/run_finished.html",
+                                      run_id=run_id, status=final_status)
+                        yield _sse("run_finished", html)
+                        break
+                    else:
+                        d = event.model_dump()
+                        yield _sse(event.kind, json.dumps(d))
+            finally:
+                unsub()
 
         return StreamingResponse(generate(), media_type="text/event-stream")
 

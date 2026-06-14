@@ -79,7 +79,7 @@ async def test_progress_events_emitted_start_perexec_finish():
     cat, store = load_catalog(), Store()
     orch = Orchestrator(cat, store, llm=_fake_llm(json.dumps(["a", "b"])),
                         executor=_succeed_executor())
-    q = orch.bus.subscribe()  # returns plain Queue (Phase 1b will return tuple)
+    q, _ = orch.bus.subscribe()
     await orch.run(_request(["excessive-agency"], ["basic"]))
     kinds = []
     while not q.empty():

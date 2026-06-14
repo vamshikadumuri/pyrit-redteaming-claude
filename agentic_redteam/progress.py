@@ -5,6 +5,7 @@ relays them over SSE. Pure asyncio fan-out — no web/PyRIT dependency."""
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Callable
 
 from pydantic import BaseModel
 
@@ -27,10 +28,17 @@ class ProgressBus:
     def __init__(self):
         self._queues: list[asyncio.Queue] = []
 
-    def subscribe(self) -> asyncio.Queue:
+    def subscribe(self) -> tuple[asyncio.Queue, Callable[[], None]]:
         q: asyncio.Queue = asyncio.Queue()
         self._queues.append(q)
-        return q
+
+        def _unsubscribe():
+            try:
+                self._queues.remove(q)
+            except ValueError:
+                pass
+
+        return q, _unsubscribe
 
     async def publish(self, event: ProgressEvent) -> None:
         for q in self._queues:
