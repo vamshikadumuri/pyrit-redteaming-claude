@@ -1,13 +1,13 @@
 """The PyRIT engine adapter (spec §3 component 4, §11). The ONLY module importing
 PyRIT attacks/targets. Maps an AttackPlan + ModelConfigs -> live PyRIT objects and
-runs execute_async. Every verified class name is isolated in the lookup tables
-below; resolve the VERIFY notes in the ghcr.io/vamshikadumuri/pyrit:0.13.0-v2
-container. Logic (which class, which objective/labels) lives in the pure modules."""
+runs them via AttackExecutor. Logic (which class, which objective) lives in the
+pure modules. Targets PyRIT 0.14.0+."""
 
 from __future__ import annotations
 
 from pyrit.executor.attack import (
     AttackAdversarialConfig,
+    AttackExecutor,
     AttackScoringConfig,
     CrescendoAttack,
     PromptSendingAttack,
@@ -94,10 +94,6 @@ async def execute_plan(
     attack = build_attack(
         plan, objective_target=objective_target, adversarial_chat=adversarial_chat, scorer=scorer
     )
-    try:
-        result = await attack.execute_async(objective=plan.objective, memory_labels=plan.labels)
-    except TypeError:
-        # VERIFY: 0.13.0-v2 may not accept memory_labels on execute_async; then labels
-        # are applied via the memory instance/context and reporting still queries by label.
-        result = await attack.execute_async(objective=plan.objective)
-    return result
+    executor = AttackExecutor()
+    results = await executor.execute_attack_async(attack=attack, objectives=[plan.objective])
+    return results.get_results()[0]

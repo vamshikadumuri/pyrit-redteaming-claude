@@ -4,13 +4,14 @@ from __future__ import annotations
 
 import logging
 from typing import Annotated
+from uuid import uuid4
 
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse, RedirectResponse
 from starlette.responses import HTMLResponse, StreamingResponse
 
 from agentic_redteam.catalog.loader import Catalog
-from agentic_redteam.records import RunSummary
+from agentic_redteam.records import RunRequest, RunSummary
 from agentic_redteam.reports.aggregation import build_report
 from agentic_redteam.store import Store
 from agentic_redteam.web import presenters
@@ -84,6 +85,23 @@ async def stop_run(
 ) -> RedirectResponse:
     manager.stop(run_id)
     return RedirectResponse(f"/runs/{run_id}", status_code=303)
+
+
+@router.post("/{run_id}/rerun")
+async def rerun_run(
+    run_id: str,
+    store: Annotated[Store, Depends(get_store)],
+    manager: Annotated[RunManager, Depends(get_manager)],
+) -> RedirectResponse:
+    row = await store.get_run(run_id)
+    if not row or not row.get("request_json"):
+        return JSONResponse({"error": "No request data stored for this run"}, status_code=404)
+    req = RunRequest.model_validate_json(row["request_json"])
+    new_run_id = f"{run_id[:20]}_re_{uuid4().hex[:6]}"
+    req.config.run_id = new_run_id
+    manager.start(req)
+    _log.info("Re-run %s created from %s", new_run_id, run_id)
+    return RedirectResponse(f"/runs/{new_run_id}", status_code=303)
 
 
 @router.get("/{run_id}/events")

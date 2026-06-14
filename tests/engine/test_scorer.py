@@ -1,4 +1,6 @@
 # tests/engine/test_scorer.py
+from unittest.mock import MagicMock
+
 import pytest
 
 pytest.importorskip("pyrit")  # scorer.py imports PyRIT; skip on the laptop, runs in the container
@@ -35,7 +37,7 @@ class _FakePiece:
 
 def _scorer():
     return PromptfooRubricScorer(
-        object(), "Purpose: {{purpose}}", {"purpose": "p", "prompt": "x", "output": "y"}
+        MagicMock(), "Purpose: {{purpose}}", {"purpose": "p", "prompt": "x", "output": "y"}
     )
 
 
@@ -47,7 +49,7 @@ async def test_score_piece_inverts_safe_to_no_violation(monkeypatch):
     async def fake(**kwargs):
         return _FakeUnvalidated("True", "model refused")
 
-    monkeypatch.setattr(sc, "_score_value_with_llm", fake)
+    monkeypatch.setattr(sc, "_score_value_with_llm_async", fake)
 
     scores = await sc._score_piece_async(_FakePiece())
     assert scores[0].score_value == "false"
@@ -62,7 +64,7 @@ async def test_score_piece_violation_is_true(monkeypatch):
     async def fake(**kwargs):
         return _FakeUnvalidated("False", "leaked secret")
 
-    monkeypatch.setattr(sc, "_score_value_with_llm", fake)
+    monkeypatch.setattr(sc, "_score_value_with_llm_async", fake)
 
     scores = await sc._score_piece_async(_FakePiece())
     assert scores[0].score_value == "true"
@@ -70,7 +72,7 @@ async def test_score_piece_violation_is_true(monkeypatch):
 
 def test_build_scorer_routes_by_rubric_kind():
     cat = load_catalog()
-    judge = object()
+    judge = MagicMock()
     b = {"purpose": "", "prompt": "", "output": ""}
     assert isinstance(
         build_scorer(cat.plugins["excessive-agency"], judge, bindings=b), PromptfooRubricScorer
@@ -88,7 +90,7 @@ def test_build_scorer_routes_by_rubric_kind():
 async def test_live_output_binding_uses_response_text(monkeypatch):
     # the rubric's {{output}} must render the actual response, not the construction blank
     sc = PromptfooRubricScorer(
-        object(), "Output under test: {{output}}", {"purpose": "p", "prompt": "x", "output": ""}
+        MagicMock(), "Output under test: {{output}}", {"purpose": "p", "prompt": "x", "output": ""}
     )
     captured = {}
 
@@ -96,7 +98,7 @@ async def test_live_output_binding_uses_response_text(monkeypatch):
         captured["system_prompt"] = kwargs["system_prompt"]
         return _FakeUnvalidated("True", "ok")
 
-    monkeypatch.setattr(sc, "_score_value_with_llm", fake)
+    monkeypatch.setattr(sc, "_score_value_with_llm_async", fake)
 
     import types
 
@@ -112,7 +114,7 @@ async def test_fallback_invoked_when_judge_roundtrip_fails(monkeypatch):
     async def boom(**kwargs):
         raise ValueError("judge returned unparseable garbage")
 
-    monkeypatch.setattr(sc, "_score_value_with_llm", boom)
+    monkeypatch.setattr(sc, "_score_value_with_llm_async", boom)
 
     sentinel = object()
 
@@ -131,7 +133,7 @@ def test_build_scorer_dynamic_coding_is_insecure_code():
     cat = load_catalog()
     s = build_scorer(
         cat.plugins["coding-agent:core"],
-        object(),
+        MagicMock(),
         bindings={"purpose": "", "prompt": "", "output": ""},
     )
     assert isinstance(s, InsecureCodeScorer)
@@ -142,7 +144,7 @@ def test_build_scorer_heuristic_is_selfask_not_substring():
 
     cat = load_catalog()
     s = build_scorer(
-        cat.plugins["xstest"], object(), bindings={"purpose": "", "prompt": "", "output": ""}
+        cat.plugins["xstest"], MagicMock(), bindings={"purpose": "", "prompt": "", "output": ""}
     )
     assert isinstance(s, SelfAskTrueFalseScorer)
     assert not isinstance(s, SubStringScorer)

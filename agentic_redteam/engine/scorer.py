@@ -86,7 +86,7 @@ class PromptfooRubricScorer(TrueFalseScorer):
         bindings = {**self._bind, "output": message_piece.converted_value}  # live response
         system_prompt = build_judge_prompt(self._rubric, bindings)
         try:
-            unvalidated = await self._score_value_with_llm(
+            unvalidated = await self._score_value_with_llm_async(
                 prompt_target=self._judge,
                 system_prompt=system_prompt,
                 message_value=message_piece.converted_value,

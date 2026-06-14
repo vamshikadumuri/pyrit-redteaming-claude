@@ -75,6 +75,7 @@ def findings(records: list[ExecutionRecord]) -> list[dict]:
             "score_value": r.score_value,
             "response_text": r.response_text,
             "conversation_id": r.conversation_id,
+            "conversation": r.conversation,
         }
         for r in records
         if r.succeeded
@@ -94,6 +95,7 @@ def all_executions(records: list[ExecutionRecord]) -> list[dict]:
             "score_value": r.score_value,
             "rationale": r.rationale,
             "response_text": r.response_text,
+            "conversation": r.conversation,
             "error": r.error,
         }
         for r in sorted_records

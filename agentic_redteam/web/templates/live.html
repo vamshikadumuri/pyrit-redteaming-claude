@@ -95,10 +95,18 @@
         <div class="text-gray-400 text-xs mt-0.5">All executions complete</div>
       </div>
     </div>
-    <a href="/runs/{{ run_id }}/report"
-       class="bg-red-600 hover:bg-red-700 text-white font-medium px-4 py-2 rounded-lg text-sm transition-colors inline-flex items-center gap-2">
-      View Full Report →
-    </a>
+    <div class="flex items-center gap-2">
+      <form method="post" action="/runs/{{ run_id }}/rerun" class="inline">
+        <button type="submit"
+                class="border border-gray-700 hover:border-blue-600 text-gray-400 hover:text-blue-300 font-medium px-4 py-2 rounded-lg text-sm transition-colors inline-flex items-center gap-2">
+          ↺ Re-run
+        </button>
+      </form>
+      <a href="/runs/{{ run_id }}/report"
+         class="bg-red-600 hover:bg-red-700 text-white font-medium px-4 py-2 rounded-lg text-sm transition-colors inline-flex items-center gap-2">
+        View Full Report →
+      </a>
+    </div>
   </div>
   {% endif %}
 

@@ -51,11 +51,32 @@ def _extract_response_text(response) -> str:
                 if isinstance(c, dict) and c.get("type") == "text"
             )
         return str(content or "")
-    for attr in ("text", "content", "value"):
+    for attr in ("original_value", "text", "content", "value"):
         val = getattr(response, attr, None)
         if isinstance(val, str) and val:
             return val
     return ""
+
+
+def _get_conversation(conversation_id: str) -> list[dict]:
+    """Query PyRIT memory for the full conversation log (multi-turn support)."""
+    if not conversation_id:
+        return []
+    try:
+        from pyrit.memory import CentralMemory
+
+        memory = CentralMemory.get_memory_instance()
+        messages = memory.get_conversation(conversation_id=conversation_id)
+        log = []
+        for msg in messages:
+            for piece in getattr(msg, "message_pieces", []):
+                content = getattr(piece, "original_value", "") or ""
+                role = str(getattr(piece, "role", "") or "")
+                if content:
+                    log.append({"role": role, "content": content})
+        return log
+    except Exception:
+        return []
 
 
 def _result_to_record(plan: AttackPlan, result) -> ExecutionRecord:
@@ -68,6 +89,7 @@ def _result_to_record(plan: AttackPlan, result) -> ExecutionRecord:
     tool_calls = parse_tool_calls(_as_message_dict(last)) if last is not None else []
     fidelity = grading_fidelity(tool_calls=tool_calls)
     response_text = _extract_response_text(last)
+    conversation = _get_conversation(conv_id)
     return ExecutionRecord.from_plan(
         plan,
         status="succeeded" if succeeded else "defended",
@@ -75,6 +97,7 @@ def _result_to_record(plan: AttackPlan, result) -> ExecutionRecord:
         rationale=rationale,
         fidelity=fidelity,
         conversation_id=conv_id,
+        conversation=conversation,
         response_text=response_text,
     )
 

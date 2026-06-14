@@ -36,6 +36,12 @@
               class="border border-gray-700 hover:border-gray-600 text-gray-400 hover:text-white px-3 py-2 rounded-lg text-sm transition-colors inline-flex items-center gap-1.5">
         🖨 Print
       </button>
+      <form method="post" action="/runs/{{ ctx.summary.run_id }}/rerun" class="inline">
+        <button type="submit"
+                class="border border-gray-700 hover:border-blue-600 text-gray-400 hover:text-blue-300 px-3 py-2 rounded-lg text-sm transition-colors inline-flex items-center gap-1.5">
+          ↺ Re-run
+        </button>
+      </form>
     </div>
   </div>
 
@@ -106,8 +112,29 @@
             <p class="text-sm text-gray-200 leading-relaxed bg-gray-900/50 rounded-lg px-3 py-2 border border-gray-800/50 font-mono">{{ f.objective }}</p>
           </div>
 
-          <!-- Target Response -->
-          {% if f.response_text %}
+          <!-- Conversation Log (multi-turn) -->
+          {% if f.conversation and f.conversation | length > 1 %}
+          <div>
+            <div class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+              <span class="w-1.5 h-1.5 rounded-full bg-indigo-400 inline-block"></span>
+              Conversation Log ({{ f.conversation | length }} turns)
+            </div>
+            <div class="space-y-1.5 bg-gray-900/50 rounded-lg px-3 py-2 border border-gray-800/50 max-h-64 overflow-y-auto">
+              {% for turn in f.conversation %}
+              <div class="flex gap-2 text-xs">
+                <span class="flex-shrink-0 font-semibold w-20 text-right
+                  {% if turn.role == 'user' %}text-blue-400
+                  {% elif turn.role == 'assistant' %}text-purple-400
+                  {% else %}text-gray-500{% endif %}">{{ turn.role }}</span>
+                <span class="text-gray-300 leading-relaxed">{{ turn.content }}</span>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+          {% endif %}
+
+          <!-- Target Response (last response for single-turn or fallback) -->
+          {% if f.response_text and not (f.conversation and f.conversation | length > 1) %}
           <div>
             <div class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
               <span class="w-1.5 h-1.5 rounded-full bg-purple-400 inline-block"></span>
@@ -209,6 +236,22 @@
                 <div x-show="open" class="mt-2 pt-2 border-t border-gray-800/50">
                   <div class="text-xs text-amber-600 mb-1 uppercase tracking-wide">Error</div>
                   <div class="text-amber-400 font-mono text-xs">{{ ex.error }}</div>
+                </div>
+                {% endif %}
+                {% if ex.conversation and ex.conversation | length > 1 %}
+                <div x-show="open" class="mt-2 pt-2 border-t border-gray-800/50">
+                  <div class="text-xs text-gray-600 mb-1.5 uppercase tracking-wide">Conversation Log ({{ ex.conversation | length }} turns)</div>
+                  <div class="space-y-1 max-h-48 overflow-y-auto">
+                    {% for turn in ex.conversation %}
+                    <div class="flex gap-2 text-xs">
+                      <span class="flex-shrink-0 font-semibold w-16 text-right
+                        {% if turn.role == 'user' %}text-blue-400
+                        {% elif turn.role == 'assistant' %}text-purple-400
+                        {% else %}text-gray-500{% endif %}">{{ turn.role }}</span>
+                      <span class="text-gray-400 leading-relaxed line-clamp-3">{{ turn.content }}</span>
+                    </div>
+                    {% endfor %}
+                  </div>
                 </div>
                 {% endif %}
               </td>

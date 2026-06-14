@@ -48,6 +48,7 @@ class ExecutionRecord(BaseModel):
     severity: str = "low"
     framework_refs: dict[str, list[str]] = Field(default_factory=dict)
     conversation_id: str = ""
+    conversation: list[dict] = Field(default_factory=list)  # full turn log from PyRIT memory
     error: str = ""
 
     @property
@@ -65,6 +66,7 @@ class ExecutionRecord(BaseModel):
         response_text: str = "",
         fidelity: str = TEXT_INFERRED,
         conversation_id: str = "",
+        conversation: list[dict] | None = None,
         error: str = "",
     ) -> ExecutionRecord:
         fr = plan.plugin.framework_refs
@@ -87,6 +89,7 @@ class ExecutionRecord(BaseModel):
                 "atlas": fr.atlas,
             },
             conversation_id=conversation_id,
+            conversation=conversation or [],
             error=error,
         )
 

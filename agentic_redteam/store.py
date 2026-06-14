@@ -6,6 +6,7 @@ list, live-view replay, and audit trail. JSON columns keep snapshots diffable.""
 
 from __future__ import annotations
 
+import contextlib
 import logging
 import time
 
@@ -22,6 +23,7 @@ CREATE TABLE IF NOT EXISTS runs (
     requested_by    TEXT NOT NULL DEFAULT '',
     target_endpoint TEXT NOT NULL DEFAULT '',
     config_json     TEXT NOT NULL,
+    request_json    TEXT NOT NULL DEFAULT '',
     summary_json    TEXT NOT NULL DEFAULT '{}',
     created_at      REAL NOT NULL,
     updated_at      REAL NOT NULL
@@ -61,6 +63,10 @@ class Store:
         self._db = await aiosqlite.connect(self._path)
         self._db.row_factory = aiosqlite.Row
         await self._db.executescript(_SCHEMA)
+        with contextlib.suppress(Exception):  # column already exists in older databases
+            await self._db.execute(
+                "ALTER TABLE runs ADD COLUMN request_json TEXT NOT NULL DEFAULT ''"
+            )
         await self._db.commit()
 
     async def _ensure_open(self) -> None:
@@ -82,13 +88,14 @@ class Store:
         now = time.time()
         await self._conn.execute(
             "INSERT INTO runs(run_id,status,requested_by,target_endpoint,config_json,"
-            "summary_json,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?)",
+            "request_json,summary_json,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?)",
             (
                 request.config.run_id,
                 "pending",
                 request.requested_by,
                 request.target.endpoint,
                 request.config.model_dump_json(),
+                request.model_dump_json(),
                 "{}",
                 now,
                 now,
