@@ -1,9 +1,8 @@
 """Live (real) executor + generation-LLM factories — the PyRIT boundary for the web
 app (mirrors scripts/run_report.py). Imports are lazy so this module imports fine on a
 laptop; calling a factory needs the pyrit:0.13.0-v2 container + reachable endpoints."""
-from __future__ import annotations
 
-import os
+from __future__ import annotations
 
 from agentic_redteam.records import RunRequest
 
@@ -12,6 +11,7 @@ def real_executor_factory(request: RunRequest):
     """Build the live PyRIT executor for a run. Lazy import: PyRIT is only needed
     inside the container."""
     from agentic_redteam.reports.memory_query import make_executor  # PyRIT import
+
     return make_executor(
         target_config=request.target,
         judge_config=request.judge,
@@ -32,6 +32,7 @@ def real_llm_factory(request: RunRequest):
 
     async def _llm(system: str, user: str) -> str:
         import httpx  # available in the pyrit:0.13.0-v2 container
+
         payload = {
             "model": model,
             "temperature": 1.0,

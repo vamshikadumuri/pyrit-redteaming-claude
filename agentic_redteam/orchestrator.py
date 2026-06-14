@@ -5,6 +5,7 @@ semaphore, persists status + records to the Store + an audit entry, and publishe
 ProgressEvents. Pure: the per-plan executor is injected (Executor type) so the whole
 pipeline is laptop-testable without PyRIT; the container supplies the real executor
 via reports.memory_query.make_executor()."""
+
 from __future__ import annotations
 
 import asyncio
@@ -22,8 +23,15 @@ Executor = Callable[[AttackPlan], Awaitable[ExecutionRecord]]
 
 
 class Orchestrator:
-    def __init__(self, catalog: Catalog, store: Store, *, llm: LLMCallable,
-                 executor: Executor, bus: ProgressBus | None = None):
+    def __init__(
+        self,
+        catalog: Catalog,
+        store: Store,
+        *,
+        llm: LLMCallable,
+        executor: Executor,
+        bus: ProgressBus | None = None,
+    ):
         self._catalog = catalog
         self._store = store
         self._llm = llm
@@ -44,20 +52,31 @@ class Orchestrator:
         await self._store.create_run(request)
 
         objectives, notes = await source_objectives(
-            self._catalog, plugin_ids=cfg.plugin_ids, profile=cfg.profile, llm=self._llm,
-            n=cfg.n, user_goals=request.user_goals, policy_text=cfg.policy_text,
-            datasets_dir=request.datasets_dir)
+            self._catalog,
+            plugin_ids=cfg.plugin_ids,
+            profile=cfg.profile,
+            llm=self._llm,
+            n=cfg.n,
+            user_goals=request.user_goals,
+            policy_text=cfg.policy_text,
+            datasets_dir=request.datasets_dir,
+        )
         plans = resolve(cfg, self._catalog, objectives)
 
         total_objs = sum(len(v) for v in objectives.values())
-        await self._store.add_audit(run_id=cfg.run_id, requested_by=request.requested_by,
-                                    target_endpoint=request.target.endpoint, objective_count=total_objs,
-                                    detail="; ".join(f"{k}: {v}" for k, v in notes.items()))
+        await self._store.add_audit(
+            run_id=cfg.run_id,
+            requested_by=request.requested_by,
+            target_endpoint=request.target.endpoint,
+            objective_count=total_objs,
+            detail="; ".join(f"{k}: {v}" for k, v in notes.items()),
+        )
 
         summary = RunSummary(run_id=cfg.run_id, status="running", total=len(plans))
         await self._store.set_status(cfg.run_id, "running")
-        await self._bus.publish(ProgressEvent(run_id=cfg.run_id, kind="run_started",
-                                              completed=0, total=len(plans)))
+        await self._bus.publish(
+            ProgressEvent(run_id=cfg.run_id, kind="run_started", completed=0, total=len(plans))
+        )
 
         sem = asyncio.Semaphore(max(1, request.concurrency))
 
@@ -69,21 +88,35 @@ class Orchestrator:
                     return
                 try:
                     record = await self._executor(plan)
-                except Exception as e:                 # harness failure -> error record; run continues
+                except Exception as e:  # harness failure -> error record; run continues
                     record = ExecutionRecord.from_plan(plan, status="error", error=str(e))
                 await self._store.save_execution(record)
                 summary.completed += 1
                 summary.succeeded += int(record.status == "succeeded")
                 summary.errors += int(record.status == "error")
-                await self._bus.publish(ProgressEvent(
-                    run_id=cfg.run_id, kind="execution_done", completed=summary.completed,
-                    total=summary.total, plugin_id=record.plugin_id, strategy_id=record.strategy_id,
-                    objective_id=record.objective_id, status=record.status))
+                await self._bus.publish(
+                    ProgressEvent(
+                        run_id=cfg.run_id,
+                        kind="execution_done",
+                        completed=summary.completed,
+                        total=summary.total,
+                        plugin_id=record.plugin_id,
+                        strategy_id=record.strategy_id,
+                        objective_id=record.objective_id,
+                        status=record.status,
+                    )
+                )
 
         await asyncio.gather(*[_one(p) for p in plans])
 
         summary.status = "stopped" if cfg.run_id in self._cancelled else "completed"
         await self._store.save_summary(summary)
-        await self._bus.publish(ProgressEvent(run_id=cfg.run_id, kind="run_finished",
-                                              completed=summary.completed, total=summary.total))
+        await self._bus.publish(
+            ProgressEvent(
+                run_id=cfg.run_id,
+                kind="run_finished",
+                completed=summary.completed,
+                total=summary.total,
+            )
+        )
         return summary

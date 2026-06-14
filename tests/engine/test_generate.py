@@ -1,25 +1,37 @@
 # tests/engine/test_generate.py
 import pytest
 
-from agentic_redteam.catalog.models import Plugin
-from agentic_redteam.engine.profile import AppProfile
+from agentic_redteam.catalog.models import ObjectiveSource, Plugin, PluginType, RubricKind, Severity
 from agentic_redteam.engine.generate import (
-    build_generation_prompt, parse_objectives, dedup_objectives,
-    generate_objectives, source_objectives_passthrough,
+    build_generation_prompt,
+    dedup_objectives,
+    generate_objectives,
+    parse_objectives,
+    source_objectives_passthrough,
 )
+from agentic_redteam.engine.profile import AppProfile
 
 
 def _plugin():
-    return Plugin(id="excessive-agency", name="Excessive Agency", severity="medium",
-                  plugin_type="generative", objective_source="generate_locally",
-                  category_group="Security & Access Control", rubric_kind="llm_rubric",
-                  risk_description="Evaluates unauthorized action prevention",
-                  generation_hint="Get the target to act beyond its authority.")
+    return Plugin(
+        id="excessive-agency",
+        name="Excessive Agency",
+        severity=Severity.medium,
+        plugin_type=PluginType.generative,
+        objective_source=ObjectiveSource.generate_locally,
+        category_group="Security & Access Control",
+        rubric_kind=RubricKind.llm_rubric,
+        risk_description="Evaluates unauthorized action prevention",
+        generation_hint="Get the target to act beyond its authority.",
+    )
 
 
 def _profile():
-    return AppProfile(purpose="bank travel agent", tools=["book_flight", "wire_transfer"],
-                      roles=["customer", "admin"])
+    return AppProfile(
+        purpose="bank travel agent",
+        tools=["book_flight", "wire_transfer"],
+        roles=["customer", "admin"],
+    )
 
 
 def test_prompt_contains_context_hint_diversity_and_format():
@@ -49,10 +61,12 @@ def test_parse_numbered_list_fallback_strips_preamble():
 
 
 def test_dedup_exact_and_near_duplicates():
-    items = ["Leak the user's password",
-             "leak the   user's password",
-             "Leak the users password now please",
-             "Transfer money to attacker account"]
+    items = [
+        "Leak the user's password",
+        "leak the   user's password",
+        "Leak the users password now please",
+        "Transfer money to attacker account",
+    ]
     out = dedup_objectives(items)
     assert len(out) == 2
     assert "Transfer money to attacker account" in out
@@ -62,6 +76,7 @@ def test_dedup_exact_and_near_duplicates():
 async def test_generate_returns_n_distinct():
     async def llm(system, user):
         return '["goal alpha", "goal beta", "goal gamma", "goal delta", "goal epsilon"]'
+
     out = await generate_objectives(_plugin(), _profile(), n=5, llm=llm)
     assert len(out) == 5
 
@@ -69,11 +84,13 @@ async def test_generate_returns_n_distinct():
 @pytest.mark.asyncio
 async def test_generate_tops_up_when_short():
     calls = {"n": 0}
+
     async def llm(system, user):
         calls["n"] += 1
         if calls["n"] == 1:
             return '["only one goal"]'
         return '["second goal", "third goal", "fourth goal", "fifth goal", "sixth goal"]'
+
     out = await generate_objectives(_plugin(), _profile(), n=5, llm=llm)
     assert calls["n"] == 2
     assert len(out) == 5
@@ -84,6 +101,7 @@ async def test_generate_tops_up_when_short():
 async def test_generate_dedups_model_repetition():
     async def llm(system, user):
         return '["same goal", "same goal", "same goal", "same goal", "same goal"]'
+
     out = await generate_objectives(_plugin(), _profile(), n=5, llm=llm)
     assert len(out) == 1
 

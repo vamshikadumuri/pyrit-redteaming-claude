@@ -1,31 +1,31 @@
 # agentic_redteam/catalog/models.py
 from __future__ import annotations
 
-from enum import Enum
+from enum import StrEnum
 
 from pydantic import BaseModel, Field
 
 
-class PluginType(str, Enum):
+class PluginType(StrEnum):
     generative = "generative"
     dataset = "dataset"
     config_required = "config_required"
 
 
-class ObjectiveSource(str, Enum):
+class ObjectiveSource(StrEnum):
     generate_locally = "generate_locally"
     dataset_rows = "dataset_rows"
     intent_passthrough = "intent_passthrough"
 
 
-class Severity(str, Enum):
+class Severity(StrEnum):
     critical = "critical"
     high = "high"
     medium = "medium"
     low = "low"
 
 
-class StrategyType(str, Enum):
+class StrategyType(StrEnum):
     encoding = "encoding"
     single_turn = "single_turn"
     multi_turn = "multi_turn"
@@ -33,14 +33,14 @@ class StrategyType(str, Enum):
     utility = "utility"
 
 
-class StrategyKind(str, Enum):
+class StrategyKind(StrEnum):
     attack = "attack"
     converter = "converter"
     meta = "meta"
     utility = "utility"
 
 
-class Fidelity(str, Enum):
+class Fidelity(StrEnum):
     clean = "clean"
     approximate = "approximate"
     custom_needed = "custom_needed"
@@ -48,7 +48,7 @@ class Fidelity(str, Enum):
     na = "na"
 
 
-class RubricKind(str, Enum):
+class RubricKind(StrEnum):
     llm_rubric = "llm_rubric"
     shared_grader = "shared_grader"
     dynamic = "dynamic"

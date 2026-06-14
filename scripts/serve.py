@@ -1,6 +1,7 @@
 """Run the web app inside pyrit:0.13.0-v2.
-  OPENAI_CHAT_KEY=... ATTACKER_ENDPOINT=... ATTACKER_MODEL=... python scripts/serve.py
+OPENAI_CHAT_KEY=... ATTACKER_ENDPOINT=... ATTACKER_MODEL=... python scripts/serve.py
 """
+
 import os
 
 import uvicorn

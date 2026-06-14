@@ -9,7 +9,10 @@ XLSX = Path(__file__).resolve().parents[2] / "promptfoo_plugins_catalog_1.xlsx"
 
 def _load(tmp_path):
     write_catalog(XLSX, tmp_path)
-    j = lambda n: json.loads((tmp_path / f"{n}.json").read_text(encoding="utf-8"))
+
+    def j(n):
+        return json.loads((tmp_path / f"{n}.json").read_text(encoding="utf-8"))
+
     return j("plugins"), j("strategies"), j("presets")
 
 
@@ -19,9 +22,16 @@ def test_counts(tmp_path):
     assert len(strategies) == 35
     pids = {p["id"] for p in presets}
     assert pids == {
-        "owasp_llm", "owasp_api", "owasp_agentic", "mitre_atlas",
-        "nist_ai_rmf", "eu_ai_act", "foundation", "guardrails-eval",
-        "mcp", "default",
+        "owasp_llm",
+        "owasp_api",
+        "owasp_agentic",
+        "mitre_atlas",
+        "nist_ai_rmf",
+        "eu_ai_act",
+        "foundation",
+        "guardrails-eval",
+        "mcp",
+        "default",
     }
 
 
@@ -76,8 +86,13 @@ def test_preset_aggregation(tmp_path):
 
     ag = by_id["owasp_agentic"]
     assert set(ag["plugins"]) >= {
-        "hijacking", "excessive-agency", "rbac", "bfla", "bola",
-        "indirect-prompt-injection", "mcp",
+        "hijacking",
+        "excessive-agency",
+        "rbac",
+        "bfla",
+        "bola",
+        "indirect-prompt-injection",
+        "mcp",
     }
     assert "owasp:agentic:asi03" in ag["category_index"]
 
@@ -86,7 +101,9 @@ def test_preset_aggregation(tmp_path):
     assert {"mcp", "bfla", "bola", "sql-injection", "rbac"} <= set(mcp["plugins"])
 
     llm = by_id["owasp_llm"]
-    assert {"jailbreak", "jailbreak-templates", "jailbreak:composite"} <= set(llm["recommended_strategies"])
+    assert {"jailbreak", "jailbreak-templates", "jailbreak:composite"} <= set(
+        llm["recommended_strategies"]
+    )
     default_only = by_id["foundation"]["recommended_strategies"]
     assert {"basic", "jailbreak:meta", "jailbreak:composite"} <= set(default_only)
 

@@ -3,13 +3,13 @@ from pathlib import Path
 
 import pytest
 
-from agentic_redteam.catalog.loader import load_catalog, CatalogError
+from agentic_redteam.catalog.loader import CatalogError, load_catalog
 
 DATA = Path("agentic_redteam/catalog/data")
 
 
 def test_loads_shipped_catalog():
-    cat = load_catalog()                       # default = shipped data dir
+    cat = load_catalog()  # default = shipped data dir
     assert len(cat.plugins) == 157
     assert len(cat.strategies) == 35
     assert len(cat.presets) == 10
@@ -27,14 +27,36 @@ def test_plugins_by_group_helper():
 
 def test_validation_rejects_unknown_preset_plugin(tmp_path):
     import json
-    (tmp_path / "plugins.json").write_text(json.dumps([{
-        "id": "p1", "name": "P1", "severity": "low", "plugin_type": "generative",
-        "objective_source": "generate_locally", "category_group": "Other",
-        "rubric_kind": "heuristic",
-    }]), encoding="utf-8")
+
+    (tmp_path / "plugins.json").write_text(
+        json.dumps(
+            [
+                {
+                    "id": "p1",
+                    "name": "P1",
+                    "severity": "low",
+                    "plugin_type": "generative",
+                    "objective_source": "generate_locally",
+                    "category_group": "Other",
+                    "rubric_kind": "heuristic",
+                }
+            ]
+        ),
+        encoding="utf-8",
+    )
     (tmp_path / "strategies.json").write_text("[]", encoding="utf-8")
-    (tmp_path / "presets.json").write_text(json.dumps([{
-        "id": "bad", "framework": "X", "title": "Bad", "plugins": ["does-not-exist"],
-    }]), encoding="utf-8")
+    (tmp_path / "presets.json").write_text(
+        json.dumps(
+            [
+                {
+                    "id": "bad",
+                    "framework": "X",
+                    "title": "Bad",
+                    "plugins": ["does-not-exist"],
+                }
+            ]
+        ),
+        encoding="utf-8",
+    )
     with pytest.raises(CatalogError, match="does-not-exist"):
         load_catalog(tmp_path)

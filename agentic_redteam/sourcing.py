@@ -4,6 +4,7 @@ objective source and return objectives_by_plugin for engine.plan.resolve(). Pure
 the LLM is injected (engine.generate.LLMCallable). Dataset rows load from a mirror
 dir and are GATED (missing mirror -> [] + reason, never faked, spec §6.2). This is
 the async sourcing wiring deferred from Plan 1c."""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -12,7 +13,9 @@ from agentic_redteam.catalog.loader import Catalog
 from agentic_redteam.catalog.models import ObjectiveSource, Plugin
 from agentic_redteam.engine.fewshot import FEWSHOT
 from agentic_redteam.engine.generate import (
-    LLMCallable, generate_objectives, source_objectives_passthrough,
+    LLMCallable,
+    generate_objectives,
+    source_objectives_passthrough,
 )
 from agentic_redteam.engine.profile import AppProfile
 
@@ -31,19 +34,28 @@ def load_dataset_rows(dataset_id: str | None, datasets_dir: str | None, n: int) 
     return rows[:n]
 
 
-async def _generate(plugin: Plugin, profile: AppProfile, n: int, llm: LLMCallable,
-                    policy_text: str) -> list[str]:
+async def _generate(
+    plugin: Plugin, profile: AppProfile, n: int, llm: LLMCallable, policy_text: str
+) -> list[str]:
     if plugin.id == "policy" and policy_text:
         profile = profile.model_copy(deep=True)
         profile.extra = {**profile.extra, "Policy under test": policy_text}
-    return await generate_objectives(plugin, profile, n, llm, fewshot=FEWSHOT.get(plugin.category_group))
+    return await generate_objectives(
+        plugin, profile, n, llm, fewshot=FEWSHOT.get(plugin.category_group)
+    )
 
 
-async def source_objectives(catalog: Catalog, *, plugin_ids: list[str], profile: AppProfile,
-                            llm: LLMCallable, n: int = 5,
-                            user_goals: dict[str, list[str]] | None = None,
-                            policy_text: str = "", datasets_dir: str | None = None,
-                            ) -> tuple[dict[str, list[str]], dict[str, str]]:
+async def source_objectives(
+    catalog: Catalog,
+    *,
+    plugin_ids: list[str],
+    profile: AppProfile,
+    llm: LLMCallable,
+    n: int = 5,
+    user_goals: dict[str, list[str]] | None = None,
+    policy_text: str = "",
+    datasets_dir: str | None = None,
+) -> tuple[dict[str, list[str]], dict[str, str]]:
     """Returns (objectives_by_plugin, notes). `notes[plugin_id]` explains an empty
     list (un-mirrored dataset / intent without goals) for the audit log + UI."""
     user_goals = user_goals or {}

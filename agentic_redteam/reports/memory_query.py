@@ -8,6 +8,7 @@
 Imports PyRIT — run inside ghcr.io/vamshikadumuri/pyrit:0.13.0-v2. VERIFY the
 AttackResult fields + the CentralMemory query API here; the extractor degrades
 gracefully (getattr fallbacks) so a name change does not crash a live run."""
+
 from __future__ import annotations
 
 from agentic_redteam.config import ModelConfig
@@ -45,7 +46,8 @@ def _extract_response_text(response) -> str:
         content = response.get("content", "")
         if isinstance(content, list):
             return " ".join(
-                c.get("text", "") for c in content
+                c.get("text", "")
+                for c in content
                 if isinstance(c, dict) and c.get("type") == "text"
             )
         return str(content or "")
@@ -58,28 +60,42 @@ def _extract_response_text(response) -> str:
 
 def _result_to_record(plan: AttackPlan, result) -> ExecutionRecord:
     succeeded = _outcome_succeeded(result)
-    score = getattr(result, "last_score", None)            # VERIFY field name
+    score = getattr(result, "last_score", None)  # VERIFY field name
     rationale = str(getattr(score, "score_rationale", "")) if score is not None else ""
     score_value = str(getattr(score, "score_value", "")) if score is not None else ""
     conv_id = str(getattr(result, "conversation_id", "") or "")
-    last = getattr(result, "last_response", None)          # VERIFY field name
+    last = getattr(result, "last_response", None)  # VERIFY field name
     tool_calls = parse_tool_calls(_as_message_dict(last)) if last is not None else []
     fidelity = grading_fidelity(tool_calls=tool_calls)
     response_text = _extract_response_text(last)
     return ExecutionRecord.from_plan(
-        plan, status="succeeded" if succeeded else "defended", score_value=score_value,
-        rationale=rationale, fidelity=fidelity, conversation_id=conv_id,
-        response_text=response_text)
+        plan,
+        status="succeeded" if succeeded else "defended",
+        score_value=score_value,
+        rationale=rationale,
+        fidelity=fidelity,
+        conversation_id=conv_id,
+        response_text=response_text,
+    )
 
 
-def make_executor(*, target_config: ModelConfig, judge_config: ModelConfig,
-                  adversarial_config: ModelConfig | None = None):
+def make_executor(
+    *,
+    target_config: ModelConfig,
+    judge_config: ModelConfig,
+    adversarial_config: ModelConfig | None = None,
+):
     """Build the live Executor the Orchestrator calls per plan."""
+
     async def _execute(plan: AttackPlan) -> ExecutionRecord:
         result = await adapter.execute_plan(
-            plan, target_config=target_config, judge_config=judge_config,
-            adversarial_config=adversarial_config)
+            plan,
+            target_config=target_config,
+            judge_config=judge_config,
+            adversarial_config=adversarial_config,
+        )
         return _result_to_record(plan, result)
+
     return _execute
 
 
@@ -88,8 +104,10 @@ def records_from_memory(run_id: str) -> list[ExecutionRecord]:
     truth). VERIFY-gated: confirm the CentralMemory accessor + label-filter API in
     the container before relying on this path. The live report reads records from the
     SQLite store, so reporting works without this; this is the re-open-past-run path."""
-    from pyrit.memory import CentralMemory                 # VERIFY import path
-    memory = CentralMemory.get_memory_instance()           # VERIFY accessor name
+    from pyrit.memory import CentralMemory  # VERIFY import path
+
+    CentralMemory.get_memory_instance()  # VERIFY accessor name
     raise NotImplementedError(
         "records_from_memory: confirm CentralMemory label-query API in the "
-        "0.13.0-v2 container (carry-forward from Plan 1c) before implementing")
+        "0.13.0-v2 container (carry-forward from Plan 1c) before implementing"
+    )

@@ -1,27 +1,66 @@
 # agentic_redteam/catalog/grouping.py
 """Derive a UI category group for a promptfoo plugin id (spec §5.1)."""
+
 from __future__ import annotations
 
 _DATASETS = {
-    "aegis", "beavertails", "cyberseceval", "donotanswer", "harmbench",
-    "pliny", "toxic-chat", "unsafebench", "vlguard", "vlsu", "xstest",
+    "aegis",
+    "beavertails",
+    "cyberseceval",
+    "donotanswer",
+    "harmbench",
+    "pliny",
+    "toxic-chat",
+    "unsafebench",
+    "vlguard",
+    "vlsu",
+    "xstest",
 }
 _DOMAIN_PREFIXES = (
-    "financial", "medical", "pharmacy", "insurance",
-    "realestate", "telecom", "ecommerce", "teen-safety",
+    "financial",
+    "medical",
+    "pharmacy",
+    "insurance",
+    "realestate",
+    "telecom",
+    "ecommerce",
+    "teen-safety",
 )
 _PRIVACY_IDS = {"cross-session-leak", "data-exfil", "rag-document-exfiltration"}
 _AGENTIC_IDS = {"rag-poisoning", "rag-source-attribution"}
 _SECURITY_IDS = {
-    "bola", "bfla", "rbac", "excessive-agency", "hijacking", "prompt-extraction",
-    "indirect-prompt-injection", "cca", "system-prompt-override", "tool-discovery",
-    "debug-access", "shell-injection", "sql-injection", "ssrf",
-    "special-token-injection", "ascii-smuggling", "mcp",
+    "bola",
+    "bfla",
+    "rbac",
+    "excessive-agency",
+    "hijacking",
+    "prompt-extraction",
+    "indirect-prompt-injection",
+    "cca",
+    "system-prompt-override",
+    "tool-discovery",
+    "debug-access",
+    "shell-injection",
+    "sql-injection",
+    "ssrf",
+    "special-token-injection",
+    "ascii-smuggling",
+    "mcp",
 }
 _TRUST_IDS = {
-    "hallucination", "overreliance", "imitation", "competitors", "politics",
-    "religion", "contracts", "unverifiable-claims", "divergent-repetition",
-    "reasoning-dos", "off-topic", "goal-misalignment", "model-identification",
+    "hallucination",
+    "overreliance",
+    "imitation",
+    "competitors",
+    "politics",
+    "religion",
+    "contracts",
+    "unverifiable-claims",
+    "divergent-repetition",
+    "reasoning-dos",
+    "off-topic",
+    "goal-misalignment",
+    "model-identification",
     "wordplay",
 }
 

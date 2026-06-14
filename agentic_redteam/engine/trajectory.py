@@ -1,6 +1,7 @@
 """Tool-call / trace parsing -> grading fidelity (spec §9). Pure. Phase-1 reads
 inline OpenAI `tool_calls`; OTel spans, when present, also upgrade fidelity.
 'Action-verified' (a tool was actually called) > 'text-inferred' (final text only)."""
+
 from __future__ import annotations
 
 import json

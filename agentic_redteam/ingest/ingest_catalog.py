@@ -3,6 +3,7 @@
 
 Parsing rules are derived from the actual cell formats in the v0.121.13 catalog.
 Run once; the JSON is committed and read by catalog.loader at runtime."""
+
 from __future__ import annotations
 
 import json
@@ -63,29 +64,32 @@ def build_plugins(rows: list[dict]) -> list[dict]:
         ptype = _ptype(r["Plugin Type"])
         rubric = r.get("Grading Rubric / Notes", "")
         is_dataset = ptype == "dataset"
-        out.append({
-            "id": pid,
-            "name": r.get("Name", "").strip() or pid,
-            "severity": r["Severity"].strip().lower(),
-            "plugin_type": ptype,
-            "objective_source": _obj_source(r["Objective Source"]),
-            "category_group": category_group(pid),
-            "framework_refs": {
-                "owasp_llm": _codes(r.get("OWASP LLM Top 10", "")),
-                "owasp_agentic": _codes(r.get("OWASP Agentic Top 10", "")),
-                "owasp_api": _codes(r.get("OWASP API Top 10", "")),
-                "atlas": _codes(r.get("MITRE ATLAS", ""), atlas=True),
-            },
-            "risk_description": r.get("Objective (description)", "").strip(),
-            "generation_hint": r.get(
-                "Imperative Objective Seed / Attacker-Goal Hint (draft)", "").strip(),
-            "grading_rubric": rubric.strip(),
-            "rubric_kind": _rubric_kind(pid, rubric),
-            "seed_dataset": pid if is_dataset else None,
-            "strategy_exempt": is_dataset or pid in _STRATEGY_EXEMPT_IDS,
-            "runnable": not is_dataset,
-            "runnable_reason": f"dataset '{pid}' not mirrored" if is_dataset else "",
-        })
+        out.append(
+            {
+                "id": pid,
+                "name": r.get("Name", "").strip() or pid,
+                "severity": r["Severity"].strip().lower(),
+                "plugin_type": ptype,
+                "objective_source": _obj_source(r["Objective Source"]),
+                "category_group": category_group(pid),
+                "framework_refs": {
+                    "owasp_llm": _codes(r.get("OWASP LLM Top 10", "")),
+                    "owasp_agentic": _codes(r.get("OWASP Agentic Top 10", "")),
+                    "owasp_api": _codes(r.get("OWASP API Top 10", "")),
+                    "atlas": _codes(r.get("MITRE ATLAS", ""), atlas=True),
+                },
+                "risk_description": r.get("Objective (description)", "").strip(),
+                "generation_hint": r.get(
+                    "Imperative Objective Seed / Attacker-Goal Hint (draft)", ""
+                ).strip(),
+                "grading_rubric": rubric.strip(),
+                "rubric_kind": _rubric_kind(pid, rubric),
+                "seed_dataset": pid if is_dataset else None,
+                "strategy_exempt": is_dataset or pid in _STRATEGY_EXEMPT_IDS,
+                "runnable": not is_dataset,
+                "runnable_reason": f"dataset '{pid}' not mirrored" if is_dataset else "",
+            }
+        )
     return out
 
 
@@ -105,8 +109,13 @@ def _stype(cell: str) -> str:
 
 def _fidelity(cell: str) -> str:
     c = cell.strip().lower()
-    for prefix, val in (("clean", "clean"), ("approximate", "approximate"),
-                        ("custom", "custom_needed"), ("meta", "meta"), ("n/a", "na")):
+    for prefix, val in (
+        ("clean", "clean"),
+        ("approximate", "approximate"),
+        ("custom", "custom_needed"),
+        ("meta", "meta"),
+        ("n/a", "na"),
+    ):
         if c.startswith(prefix):
             return val
     return "approximate"
@@ -128,21 +137,23 @@ def build_strategies(rows: list[dict]) -> list[dict]:
         sid = r["Promptfoo Strategy ID"].strip()
         stype = _stype(r["Type"])
         fid = _fidelity(r["PyRIT Fidelity (how clean?)"])
-        out.append({
-            "id": sid,
-            "display_name": r.get("Display Name", "").strip() or sid,
-            "type": stype,
-            "kind": _kind(sid, stype, fid),
-            "offline": r["Air-gap (offline?)"].strip().lower().startswith("runs locally"),
-            "pyrit_class": None,
-            "converter_chain": [],
-            "pyrit_equivalent": r.get("PyRIT 0.13.0 Equivalent", "").strip(),
-            "fidelity": fid,
-            "is_default": r.get("DEFAULT?", "").strip().lower() == "yes",
-            "needs": [],
-            "params": {},
-            "description": r.get("Description (Promptfoo)", "").strip(),
-        })
+        out.append(
+            {
+                "id": sid,
+                "display_name": r.get("Display Name", "").strip() or sid,
+                "type": stype,
+                "kind": _kind(sid, stype, fid),
+                "offline": r["Air-gap (offline?)"].strip().lower().startswith("runs locally"),
+                "pyrit_class": None,
+                "converter_chain": [],
+                "pyrit_equivalent": r.get("PyRIT 0.13.0 Equivalent", "").strip(),
+                "fidelity": fid,
+                "is_default": r.get("DEFAULT?", "").strip().lower() == "yes",
+                "needs": [],
+                "params": {},
+                "description": r.get("Description (Promptfoo)", "").strip(),
+            }
+        )
     return out
 
 
@@ -185,13 +196,21 @@ def _dedup(seq):
     return out
 
 
-def build_presets(rows: list[dict], all_plugin_ids: set[str], all_strategy_ids: set[str]) -> list[dict]:
+def build_presets(
+    rows: list[dict], all_plugin_ids: set[str], all_strategy_ids: set[str]
+) -> list[dict]:
     acc: dict[str, dict] = {}
 
     def ensure(pid, framework, title):
         if pid not in acc:
-            acc[pid] = {"id": pid, "framework": framework, "title": title,
-                        "plugins": [], "recommended_strategies": [], "category_index": {}}
+            acc[pid] = {
+                "id": pid,
+                "framework": framework,
+                "title": title,
+                "plugins": [],
+                "recommended_strategies": [],
+                "category_index": {},
+            }
         return acc[pid]
 
     for r in rows:
@@ -206,7 +225,9 @@ def build_presets(rows: list[dict], all_plugin_ids: set[str], all_strategy_ids: 
             continue
 
         a = ensure(preset_id, framework, title)
-        cat_plugins = _expand_plugins(_split_list(r["Plugins (as Promptfoo defines)"]), all_plugin_ids)
+        cat_plugins = _expand_plugins(
+            _split_list(r["Plugins (as Promptfoo defines)"]), all_plugin_ids
+        )
         strategies = _split_list(r["Promptfoo Recommended Strategies"]) or list(_DEFAULT_STRATEGIES)
         strategies = [s for s in strategies if s in all_strategy_ids]
 
@@ -237,7 +258,8 @@ def write_catalog(xlsx_path, out_dir) -> None:
 
     for name, data in (("plugins", plugins), ("strategies", strategies), ("presets", presets)):
         (out_dir / f"{name}.json").write_text(
-            json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
+            json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8"
+        )
 
 
 if __name__ == "__main__":

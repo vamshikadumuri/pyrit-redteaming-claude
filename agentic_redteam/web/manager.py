@@ -3,6 +3,7 @@ Builds one Orchestrator per run with the executor + generation-LLM derived from 
 RunRequest, launches it as an asyncio task, and exposes stop()/wait(). Pure: the
 executor_factory + llm_factory are injected (demo or live), so the run lifecycle is
 laptop-testable without PyRIT."""
+
 from __future__ import annotations
 
 import asyncio
@@ -60,8 +61,9 @@ class RunManager:
             except Exception as exc:
                 _log.error("Run %s failed: %s", run_id, exc, exc_info=True)
                 await self._store.set_status(run_id, "failed")
-                await self._bus.publish(ProgressEvent(
-                    run_id=run_id, kind="run_finished", completed=0, total=0))
+                await self._bus.publish(
+                    ProgressEvent(run_id=run_id, kind="run_finished", completed=0, total=0)
+                )
 
         task = asyncio.create_task(_run_with_error_handling())
         self._runs[run_id] = (orch, task)

@@ -1,5 +1,5 @@
 from agentic_redteam.catalog.loader import load_catalog
-from agentic_redteam.engine.strategy_map import StrategySpec, resolve_strategy, combo_supported
+from agentic_redteam.engine.strategy_map import combo_supported, resolve_strategy
 
 
 def _strat(sid):
@@ -27,7 +27,7 @@ def test_clean_converter_maps_to_converter_class():
     spec = resolve_strategy(_strat("base64"))
     assert spec.mechanism == "converter"
     assert spec.converter_classes == ["Base64Converter"]
-    assert spec.attack_class == "PromptSendingAttack"   # converters ride a direct send
+    assert spec.attack_class == "PromptSendingAttack"  # converters ride a direct send
     assert spec.supported is True
 
 
@@ -39,7 +39,9 @@ def test_redteaming_family_maps_to_redteaming_attack():
 
 
 def test_tap_and_roleplay_classes():
-    assert resolve_strategy(_strat("jailbreak:tree")).attack_class == "TreeOfAttacksWithPruningAttack"
+    assert (
+        resolve_strategy(_strat("jailbreak:tree")).attack_class == "TreeOfAttacksWithPruningAttack"
+    )
     assert resolve_strategy(_strat("mischievous-user")).attack_class == "RolePlayAttack"
 
 
@@ -47,7 +49,7 @@ def test_custom_needed_is_unsupported():
     spec = resolve_strategy(_strat("camelcase"))
     assert spec.supported is False
     assert spec.mechanism == "unsupported"
-    assert spec.note                                   # human-readable reason present
+    assert spec.note  # human-readable reason present
 
 
 def test_multimodal_unsupported_in_poc():
@@ -56,12 +58,12 @@ def test_multimodal_unsupported_in_poc():
 
 def test_retry_is_na_and_unsupported():
     spec = resolve_strategy(_strat("retry"))
-    assert spec.supported is False                     # hidden from the attack picker
+    assert spec.supported is False  # hidden from the attack picker
 
 
 def test_combo_exempt_plugin_only_accepts_basic():
     cat = load_catalog()
-    exempt = cat.plugins["system-prompt-override"]     # strategy_exempt == True
+    exempt = cat.plugins["system-prompt-override"]  # strategy_exempt == True
     assert combo_supported(exempt, resolve_strategy(_strat("basic"))) is True
     assert combo_supported(exempt, resolve_strategy(_strat("crescendo"))) is False
 

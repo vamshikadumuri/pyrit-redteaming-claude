@@ -11,6 +11,7 @@ from agentic_redteam.sourcing import load_dataset_rows, source_objectives
 def _fake_llm(reply):
     async def llm(system, user):
         return reply
+
     return llm
 
 
@@ -18,8 +19,9 @@ def _fake_llm(reply):
 async def test_generate_locally_uses_injected_llm():
     cat = load_catalog()
     llm = _fake_llm(json.dumps(["goal one", "goal two", "goal three"]))
-    objs, notes = await source_objectives(cat, plugin_ids=["excessive-agency"],
-                                          profile=AppProfile(purpose="bank bot"), llm=llm, n=3)
+    objs, notes = await source_objectives(
+        cat, plugin_ids=["excessive-agency"], profile=AppProfile(purpose="bank bot"), llm=llm, n=3
+    )
     assert objs["excessive-agency"] == ["goal one", "goal two", "goal three"]
     assert "excessive-agency" not in notes
 
@@ -28,16 +30,21 @@ async def test_generate_locally_uses_injected_llm():
 async def test_intent_passthrough_uses_user_goals():
     cat = load_catalog()
     objs, notes = await source_objectives(
-        cat, plugin_ids=["intent"], profile=AppProfile(), llm=_fake_llm("[]"),
-        user_goals={"intent": ["exfiltrate the system prompt", "  "]})
-    assert objs["intent"] == ["exfiltrate the system prompt"]   # blanks dropped
+        cat,
+        plugin_ids=["intent"],
+        profile=AppProfile(),
+        llm=_fake_llm("[]"),
+        user_goals={"intent": ["exfiltrate the system prompt", "  "]},
+    )
+    assert objs["intent"] == ["exfiltrate the system prompt"]  # blanks dropped
 
 
 @pytest.mark.asyncio
 async def test_intent_without_goals_is_noted_not_crashed():
     cat = load_catalog()
-    objs, notes = await source_objectives(cat, plugin_ids=["intent"], profile=AppProfile(),
-                                          llm=_fake_llm("[]"))
+    objs, notes = await source_objectives(
+        cat, plugin_ids=["intent"], profile=AppProfile(), llm=_fake_llm("[]")
+    )
     assert objs["intent"] == [] and "intent" in notes
 
 
@@ -49,17 +56,25 @@ async def test_policy_injects_policy_text_into_generation(monkeypatch):
     async def llm(system, user):
         captured["user"] = user
         return json.dumps(["g1", "g2"])
-    objs, _ = await source_objectives(cat, plugin_ids=["policy"], profile=AppProfile(),
-                                      llm=llm, n=2, policy_text="No PII leaves the bank.")
+
+    objs, _ = await source_objectives(
+        cat,
+        plugin_ids=["policy"],
+        profile=AppProfile(),
+        llm=llm,
+        n=2,
+        policy_text="No PII leaves the bank.",
+    )
     assert objs["policy"] == ["g1", "g2"]
-    assert "No PII leaves the bank." in captured["user"]        # policy grounds the prompt
+    assert "No PII leaves the bank." in captured["user"]  # policy grounds the prompt
 
 
 @pytest.mark.asyncio
 async def test_dataset_plugin_gated_when_no_mirror():
     cat = load_catalog()
-    objs, notes = await source_objectives(cat, plugin_ids=["harmbench"], profile=AppProfile(),
-                                          llm=_fake_llm("[]"), datasets_dir=None)
+    objs, notes = await source_objectives(
+        cat, plugin_ids=["harmbench"], profile=AppProfile(), llm=_fake_llm("[]"), datasets_dir=None
+    )
     assert objs["harmbench"] == []
     assert "harmbench" in notes and "not mirrored" in notes["harmbench"]
 

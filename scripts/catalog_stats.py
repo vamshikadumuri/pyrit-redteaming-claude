@@ -1,5 +1,6 @@
 # scripts/catalog_stats.py
 """Print a human summary of the loaded catalog (no PyRIT needed)."""
+
 from collections import Counter
 
 from agentic_redteam.catalog.loader import load_catalog

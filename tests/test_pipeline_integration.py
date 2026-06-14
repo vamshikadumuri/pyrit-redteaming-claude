@@ -15,6 +15,7 @@ from agentic_redteam.store import Store
 def _fake_llm(reply):
     async def llm(system, user):
         return reply
+
     return llm
 
 
@@ -26,14 +27,17 @@ async def test_full_pipeline_orchestrate_store_report():
     async def executor(plan):
         status = "succeeded" if plan.plugin.id == "pii:direct" else "defended"
         return ExecutionRecord.from_plan(plan, status=status, rationale="judged")
+
     orch = Orchestrator(cat, store, llm=_fake_llm(json.dumps(["g1", "g2"])), executor=executor)
 
     req = RunRequest(
-        config=RunConfig(run_id="run-1", plugin_ids=["pii:direct", "bola"],
-                         strategy_ids=["basic"], n=2),
+        config=RunConfig(
+            run_id="run-1", plugin_ids=["pii:direct", "bola"], strategy_ids=["basic"], n=2
+        ),
         target=ModelConfig(endpoint="https://gw/v1", model_name="t"),
         judge=ModelConfig(endpoint="https://gw/v1", model_name="j"),
-        requested_by="vamshi")
+        requested_by="vamshi",
+    )
     summary = await orch.run(req)
 
     assert summary.total == 4 and summary.succeeded == 2 and summary.status == "completed"
@@ -45,5 +49,7 @@ async def test_full_pipeline_orchestrate_store_report():
     # pii:direct carries an OWASP LLM code -> appears in the scorecard
     assert report["framework_scorecard"]["owasp_llm"]
     # the run + audit trail persisted
-    assert (await store.get_run("run-1"))["status"] == "completed"
+    run_row = await store.get_run("run-1")
+    assert run_row is not None
+    assert run_row["status"] == "completed"
     assert (await store.get_audit("run-1"))[0]["objective_count"] == 4

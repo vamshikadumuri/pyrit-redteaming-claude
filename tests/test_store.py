@@ -44,15 +44,16 @@ async def test_set_status_and_save_summary(store):
     await store.create_run(_request("run-1"))
     await store.set_status("run-1", "running")
     assert (await store.get_run("run-1"))["status"] == "running"
-    await store.save_summary(RunSummary(run_id="run-1", status="completed", total=3, completed=3,
-                                        succeeded=1, errors=0))
+    await store.save_summary(
+        RunSummary(run_id="run-1", status="completed", total=3, completed=3, succeeded=1, errors=0)
+    )
     assert (await store.get_run("run-1"))["status"] == "completed"
 
 
 async def test_executions_roundtrip_as_records(store):
     await store.create_run(_request("run-1"))
     await store.save_execution(_record("run-1", "succeeded"))
-    await store.save_execution(_record("run-1", "defended"))     # same key -> REPLACE (idempotent)
+    await store.save_execution(_record("run-1", "defended"))  # same key -> REPLACE (idempotent)
     recs = await store.get_executions("run-1")
     assert len(recs) == 1 and recs[0].status == "defended"
     assert isinstance(recs[0], ExecutionRecord)
@@ -60,8 +61,13 @@ async def test_executions_roundtrip_as_records(store):
 
 async def test_audit_log_records_authorization(store):
     await store.create_run(_request("run-1"))
-    await store.add_audit(run_id="run-1", requested_by="vamshi", target_endpoint="https://gw/v1",
-                          objective_count=7, detail="pii:direct: ok")
+    await store.add_audit(
+        run_id="run-1",
+        requested_by="vamshi",
+        target_endpoint="https://gw/v1",
+        objective_count=7,
+        detail="pii:direct: ok",
+    )
     entries = await store.get_audit("run-1")
     assert len(entries) == 1
     assert entries[0]["objective_count"] == 7 and entries[0]["requested_by"] == "vamshi"

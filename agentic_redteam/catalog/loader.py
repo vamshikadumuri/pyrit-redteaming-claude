@@ -7,7 +7,7 @@ from pathlib import Path
 
 from pydantic import BaseModel
 
-from .models import Plugin, Strategy, Preset
+from .models import Plugin, Preset, Strategy
 
 _DEFAULT_DATA = Path(__file__).resolve().parent / "data"
 

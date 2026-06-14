@@ -22,5 +22,6 @@ def test_reads_strategy_and_preset_sheets():
 
 def test_unknown_sheet_raises():
     import pytest
+
     with pytest.raises(KeyError):
         read_sheet(XLSX, "NoSuchSheet")

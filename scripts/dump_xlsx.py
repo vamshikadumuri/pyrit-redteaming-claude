@@ -1,6 +1,9 @@
 """Stdlib-only xlsx dumper. Writes each sheet to docs/_catalog_dump/<sheet>.tsv."""
-import zipfile, os, re
+
+import os
+import re
 import xml.etree.ElementTree as ET
+import zipfile
 
 NS = "{http://schemas.openxmlformats.org/spreadsheetml/2006/main}"
 SRC = "promptfoo_plugins_catalog_1.xlsx"
@@ -18,13 +21,16 @@ if "xl/sharedStrings.xml" in z.namelist():
         text = "".join(t.text or "" for t in si.iter(f"{NS}t"))
         shared.append(text)
 
+
 def col_index(ref):
     m = re.match(r"([A-Z]+)", ref)
+    assert m is not None
     letters = m.group(1)
     idx = 0
     for ch in letters:
         idx = idx * 26 + (ord(ch) - ord("A") + 1)
     return idx - 1
+
 
 sheet_files = {
     "Plugins": "xl/worksheets/sheet1.xml",
@@ -41,20 +47,21 @@ for name, path in sheet_files.items():
         maxc = 0
         for c in row.findall(f"{NS}c"):
             ref = c.get("r")
+            assert ref is not None
             ci = col_index(ref)
             maxc = max(maxc, ci)
             t = c.get("t")
             v = c.find(f"{NS}v")
             isel = c.find(f"{NS}is")
             if t == "s" and v is not None:
-                val = shared[int(v.text)]
+                val = shared[int(v.text or 0)]
             elif t == "inlineStr" and isel is not None:
                 val = "".join(x.text or "" for x in isel.iter(f"{NS}t"))
             elif v is not None:
-                val = v.text
+                val = v.text or ""
             else:
                 val = ""
-            cells[ci] = (val or "").replace("\t", " ").replace("\n", " \\n ")
+            cells[ci] = val.replace("\t", " ").replace("\n", " \\n ")
         rowlist = [cells.get(i, "") for i in range(maxc + 1)]
         rows_out.append(rowlist)
     with open(f"{OUT}/{name}.tsv", "w", encoding="utf-8") as f:

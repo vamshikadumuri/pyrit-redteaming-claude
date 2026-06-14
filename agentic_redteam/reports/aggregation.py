@@ -3,6 +3,7 @@
 orchestrator's store OR replayed from PyRIT memory by memory_query) and rolls them
 up into the framework scorecard, plugin x strategy ASR heatmap, findings, and
 sanity flags. Error records are excluded from graded counts. No PyRIT import."""
+
 from __future__ import annotations
 
 from collections import defaultdict
@@ -23,18 +24,26 @@ def _graded(records: list[ExecutionRecord]) -> list[ExecutionRecord]:
 def framework_scorecard(records: list[ExecutionRecord]) -> dict:
     """family -> category_code -> {total, succeeded, asr}. Uses each record's
     framework_refs, independent of the selected preset (spec §5.2, §14)."""
-    cells: dict[str, dict[str, dict]] = {fam: defaultdict(lambda: {"total": 0, "succeeded": 0})
-                                         for fam in _FAMILIES}
+    cells: dict[str, dict[str, dict]] = {
+        fam: defaultdict(lambda: {"total": 0, "succeeded": 0}) for fam in _FAMILIES
+    }
     for r in _graded(records):
         for fam in _FAMILIES:
             for code in r.framework_refs.get(fam, []):
                 cell = cells[fam][code]
                 cell["total"] += 1
                 cell["succeeded"] += int(r.succeeded)
-    return {fam: {code: {"total": c["total"], "succeeded": c["succeeded"],
-                         "asr": _asr(c["succeeded"], c["total"])}
-                  for code, c in codes.items()}
-            for fam, codes in cells.items()}
+    return {
+        fam: {
+            code: {
+                "total": c["total"],
+                "succeeded": c["succeeded"],
+                "asr": _asr(c["succeeded"], c["total"]),
+            }
+            for code, c in codes.items()
+        }
+        for fam, codes in cells.items()
+    }
 
 
 def asr_heatmap(records: list[ExecutionRecord]) -> dict:
@@ -46,27 +55,49 @@ def asr_heatmap(records: list[ExecutionRecord]) -> dict:
         c["succeeded"] += int(r.succeeded)
     out: dict[str, dict[str, dict]] = defaultdict(dict)
     for (pid, sid), c in cells.items():
-        out[pid][sid] = {"total": c["total"], "succeeded": c["succeeded"],
-                         "asr": _asr(c["succeeded"], c["total"])}
+        out[pid][sid] = {
+            "total": c["total"],
+            "succeeded": c["succeeded"],
+            "asr": _asr(c["succeeded"], c["total"]),
+        }
     return dict(out)
 
 
 def findings(records: list[ExecutionRecord]) -> list[dict]:
-    return [{"plugin_id": r.plugin_id, "strategy_id": r.strategy_id, "objective": r.objective,
-             "severity": r.severity, "fidelity": r.fidelity, "rationale": r.rationale,
-             "score_value": r.score_value, "response_text": r.response_text,
-             "conversation_id": r.conversation_id}
-            for r in records if r.succeeded]
+    return [
+        {
+            "plugin_id": r.plugin_id,
+            "strategy_id": r.strategy_id,
+            "objective": r.objective,
+            "severity": r.severity,
+            "fidelity": r.fidelity,
+            "rationale": r.rationale,
+            "score_value": r.score_value,
+            "response_text": r.response_text,
+            "conversation_id": r.conversation_id,
+        }
+        for r in records
+        if r.succeeded
+    ]
 
 
 def all_executions(records: list[ExecutionRecord]) -> list[dict]:
     """All execution records ordered by status (succeeded first) for the transparency table."""
     order = {"succeeded": 0, "defended": 1, "error": 2}
     sorted_records = sorted(records, key=lambda r: (order.get(r.status, 9), r.plugin_id))
-    return [{"plugin_id": r.plugin_id, "strategy_id": r.strategy_id, "objective": r.objective,
-             "status": r.status, "score_value": r.score_value, "rationale": r.rationale,
-             "response_text": r.response_text, "error": r.error}
-            for r in sorted_records]
+    return [
+        {
+            "plugin_id": r.plugin_id,
+            "strategy_id": r.strategy_id,
+            "objective": r.objective,
+            "status": r.status,
+            "score_value": r.score_value,
+            "rationale": r.rationale,
+            "response_text": r.response_text,
+            "error": r.error,
+        }
+        for r in sorted_records
+    ]
 
 
 def sanity_flags(records: list[ExecutionRecord]) -> list[dict]:
@@ -79,8 +110,13 @@ def sanity_flags(records: list[ExecutionRecord]) -> list[dict]:
     flags = []
     for pid, c in by_plugin.items():
         if c["total"] >= 2 and c["succeeded"] in (0, c["total"]):
-            flags.append({"plugin_id": pid, "asr": _asr(c["succeeded"], c["total"]),
-                          "note": "all-pass" if c["succeeded"] == c["total"] else "all-fail"})
+            flags.append(
+                {
+                    "plugin_id": pid,
+                    "asr": _asr(c["succeeded"], c["total"]),
+                    "note": "all-pass" if c["succeeded"] == c["total"] else "all-fail",
+                }
+            )
     return flags
 
 

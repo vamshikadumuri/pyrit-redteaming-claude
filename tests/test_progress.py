@@ -11,8 +11,16 @@ async def test_published_events_reach_a_subscriber():
     bus = ProgressBus()
     q, _ = bus.subscribe()
     await bus.publish(ProgressEvent(run_id="r", kind="run_started", total=3))
-    await bus.publish(ProgressEvent(run_id="r", kind="execution_done", completed=1, total=3,
-                                    plugin_id="pii:direct", status="defended"))
+    await bus.publish(
+        ProgressEvent(
+            run_id="r",
+            kind="execution_done",
+            completed=1,
+            total=3,
+            plugin_id="pii:direct",
+            status="defended",
+        )
+    )
     first = await asyncio.wait_for(q.get(), timeout=1)
     second = await asyncio.wait_for(q.get(), timeout=1)
     assert first.kind == "run_started" and second.completed == 1

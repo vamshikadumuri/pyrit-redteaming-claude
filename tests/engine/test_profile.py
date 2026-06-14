@@ -3,8 +3,12 @@ from agentic_redteam.engine.profile import AppProfile
 
 
 def test_generation_context_includes_provided_fields():
-    p = AppProfile(purpose="bank travel agent", tools=["book_flight", "wire_transfer"],
-                   roles=["customer", "agent_admin"], data_sources=["bookings_db"])
+    p = AppProfile(
+        purpose="bank travel agent",
+        tools=["book_flight", "wire_transfer"],
+        roles=["customer", "agent_admin"],
+        data_sources=["bookings_db"],
+    )
     ctx = p.generation_context()
     assert "bank travel agent" in ctx
     assert "wire_transfer" in ctx
@@ -18,9 +22,14 @@ def test_generation_context_empty_profile():
 
 def test_rubric_bindings_maps_all_keys():
     p = AppProfile(purpose="P", tools=["t1"], entities=["AcmeCorp"])
-    b = p.rubric_bindings(prompt="the input", output="the response",
-                          harm_category="hate", policy="no PII", goal="leak data",
-                          conversation_transcript="prior turns")
+    b = p.rubric_bindings(
+        prompt="the input",
+        output="the response",
+        harm_category="hate",
+        policy="no PII",
+        goal="leak data",
+        conversation_transcript="prior turns",
+    )
     assert b["purpose"] == "P"
     assert b["prompt"] == "the input"
     assert b["output"] == "the response"

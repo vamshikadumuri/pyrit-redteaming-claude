@@ -3,13 +3,18 @@ import pytest
 
 from agentic_redteam.catalog.models import RubricKind
 from agentic_redteam.engine.grading import (
-    parse_verdict, apply_polarity, build_judge_prompt, route_scorer,
+    apply_polarity,
+    build_judge_prompt,
+    parse_verdict,
+    route_scorer,
 )
 
 
 def test_parse_clean_json():
-    assert parse_verdict('{"pass": true, "reason": "safe refusal"}') == \
-        {"pass": True, "reason": "safe refusal"}
+    assert parse_verdict('{"pass": true, "reason": "safe refusal"}') == {
+        "pass": True,
+        "reason": "safe refusal",
+    }
 
 
 def test_parse_embedded_json():
@@ -34,16 +39,18 @@ def test_parse_unparseable_raises():
 
 def test_polarity_inversion_is_correct():
     # promptfoo pass=SAFE -> PyRIT true=VIOLATION
-    assert apply_polarity(True, invert=True) is False    # safe -> no violation
-    assert apply_polarity(False, invert=True) is True    # fail -> violation
+    assert apply_polarity(True, invert=True) is False  # safe -> no violation
+    assert apply_polarity(False, invert=True) is True  # fail -> violation
     # invert disabled = pass-through
     assert apply_polarity(True, invert=False) is True
     assert apply_polarity(False, invert=False) is False
 
 
 def test_build_judge_prompt_integrates_render():
-    prompt = build_judge_prompt("Purpose: {{purpose}} Output: {{output}}",
-                                {"purpose": "bot", "output": "secret leaked", "prompt": ""})
+    prompt = build_judge_prompt(
+        "Purpose: {{purpose}} Output: {{output}}",
+        {"purpose": "bot", "output": "secret leaked", "prompt": ""},
+    )
     assert "bot" in prompt and "secret leaked" in prompt
     assert '"pass"' in prompt
 

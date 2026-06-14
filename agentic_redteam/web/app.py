@@ -1,5 +1,6 @@
 """FastAPI web application (spec §13/§16). Container-only module — requires
 fastapi, starlette, uvicorn in the image. Never imported by laptop tests."""
+
 from __future__ import annotations
 
 import asyncio
@@ -41,6 +42,7 @@ _ALWAYS_EXCLUDE = {"completed_steps", "scope_mode"}
 def _hidden_fields(data: dict, current_n: int) -> str:
     """Return hidden <input> elements for all accumulated data except current step's fields."""
     from markupsafe import Markup, escape
+
     exclude = _STEP_FIELDS.get(current_n, set()) | _ALWAYS_EXCLUDE
     parts = []
     for k, v in data.items():
@@ -54,6 +56,7 @@ def _hidden_fields(data: dict, current_n: int) -> str:
 
 def _wizard_ctx(n: int, data: dict, catalog, errors: dict | None = None) -> dict:
     from agentic_redteam.web.presenters import wizard_view
+
     return {
         "n": n,
         "data": data,
@@ -90,6 +93,7 @@ def _sse(event: str, html: str) -> str:
 async def _parse_form(request: Request) -> dict:
     """Parse application/x-www-form-urlencoded without python-multipart."""
     from urllib.parse import parse_qs
+
     body = await request.body()
     raw = parse_qs(body.decode("utf-8"), keep_blank_values=True)
     data: dict = {}
@@ -114,6 +118,7 @@ def create_app(
         await store._open()
         try:
             from pyrit.setup import IN_MEMORY, initialize_pyrit_async
+
             await initialize_pyrit_async(memory_db_type=IN_MEMORY)
         except ImportError:
             pass  # PyRIT not installed (laptop / test environment)
@@ -139,13 +144,17 @@ def create_app(
     @app.get("/")
     async def wizard_route(request: Request):
         from starlette.responses import HTMLResponse
-        html = render("wizard.html", title="New Run", **_wizard_ctx(1, {}, catalog), request=request)
+
+        html = render(
+            "wizard.html", title="New Run", **_wizard_ctx(1, {}, catalog), request=request
+        )
         return HTMLResponse(html)
 
     @app.get("/wizard/step/{n}")
     async def wizard_step_get(n: int, request: Request):
         from starlette.responses import HTMLResponse
-        params = dict(request.query_params)
+
+        params: dict = dict(request.query_params)
         # Multi-value query params (plugin_ids, strategy_ids)
         for key in ("plugin_ids", "strategy_ids"):
             vals = request.query_params.getlist(key)
@@ -158,6 +167,7 @@ def create_app(
     async def wizard_step_post(n: int, request: Request):
         """Re-render step n with form data (Back navigation / completed-step edit)."""
         from starlette.responses import HTMLResponse
+
         data = await _parse_form(request)
         ctx = _wizard_ctx(n, data, catalog)
         return HTMLResponse(render(f"partials/wizard_step_{n}.html", **ctx))
@@ -165,6 +175,7 @@ def create_app(
     @app.post("/wizard/step/{n}/next")
     async def wizard_step_next(n: int, request: Request):
         from starlette.responses import HTMLResponse
+
         data = await _parse_form(request)
 
         errors: dict[str, str] = {}
@@ -206,14 +217,24 @@ def create_app(
             raw_plugins = data.get("plugin_ids", [])
             plugin_ids = raw_plugins if isinstance(raw_plugins, list) else _csv(raw_plugins)
             raw_strats = data.get("strategy_ids", [])
-            strategy_ids = (raw_strats if isinstance(raw_strats, list) else _csv(raw_strats)) or ["basic"]
+            strategy_ids = (raw_strats if isinstance(raw_strats, list) else _csv(raw_strats)) or [
+                "basic"
+            ]
 
         profile = AppProfile(
             purpose=data.get("purpose", ""),
-            tools=_csv(data.get("tools", "")) if isinstance(data.get("tools", ""), str) else (data.get("tools") or []),
-            roles=_csv(data.get("roles", "")) if isinstance(data.get("roles", ""), str) else (data.get("roles") or []),
-            data_channels=_csv(data.get("data_channels", "")) if isinstance(data.get("data_channels", ""), str) else (data.get("data_channels") or []),
-            entities=_csv(data.get("entities", "")) if isinstance(data.get("entities", ""), str) else (data.get("entities") or []),
+            tools=_csv(data.get("tools", ""))
+            if isinstance(data.get("tools", ""), str)
+            else (data.get("tools") or []),
+            roles=_csv(data.get("roles", ""))
+            if isinstance(data.get("roles", ""), str)
+            else (data.get("roles") or []),
+            data_channels=_csv(data.get("data_channels", ""))
+            if isinstance(data.get("data_channels", ""), str)
+            else (data.get("data_channels") or []),
+            entities=_csv(data.get("entities", ""))
+            if isinstance(data.get("entities", ""), str)
+            else (data.get("entities") or []),
         )
 
         n_str = data.get("n", "5")
@@ -231,7 +252,9 @@ def create_app(
         )
 
         target = _model(data, "target")
+        assert target is not None
         judge = _model(data, "judge")
+        assert judge is not None
         adversarial = _model(data, "adversarial", optional=True)
 
         req = RunRequest(
@@ -270,6 +293,7 @@ def create_app(
         ctx = presenters.report_context(summary, records)
         html = render("live.html", title=f"Run {run_id}", run_id=run_id, ctx=ctx, request=request)
         from starlette.responses import HTMLResponse
+
         return HTMLResponse(html)
 
     @app.get("/runs/{run_id}/events")
@@ -280,17 +304,18 @@ def create_app(
             try:
                 # Replay already-completed executions from the store
                 for rec in await store.get_executions(run_id):
-                    html = render("partials/feed_row.html",
-                                  plugin_id=rec.plugin_id,
-                                  strategy_id=rec.strategy_id,
-                                  status=rec.status)
+                    html = render(
+                        "partials/feed_row.html",
+                        plugin_id=rec.plugin_id,
+                        strategy_id=rec.strategy_id,
+                        status=rec.status,
+                    )
                     yield _sse("execution_done", html)
 
                 # Check if run is already final
                 row = await store.get_run(run_id)
                 if row and row.get("status") in _FINAL:
-                    html = render("partials/run_finished.html",
-                                  run_id=run_id, status=row["status"])
+                    html = render("partials/run_finished.html", run_id=run_id, status=row["status"])
                     yield _sse("run_finished", html)
                     return
 
@@ -300,23 +325,26 @@ def create_app(
                         break
                     try:
                         event = await asyncio.wait_for(q.get(), timeout=1.0)
-                    except asyncio.TimeoutError:
+                    except TimeoutError:
                         continue
 
                     if event.run_id != run_id:
                         continue
 
                     if event.kind == "execution_done":
-                        html = render("partials/feed_row.html",
-                                      plugin_id=event.plugin_id,
-                                      strategy_id=event.strategy_id,
-                                      status=event.status)
+                        html = render(
+                            "partials/feed_row.html",
+                            plugin_id=event.plugin_id,
+                            strategy_id=event.strategy_id,
+                            status=event.status,
+                        )
                         yield _sse("execution_done", html)
                     elif event.kind == "run_finished":
                         row = await store.get_run(run_id)
                         final_status = row["status"] if row else "completed"
-                        html = render("partials/run_finished.html",
-                                      run_id=run_id, status=final_status)
+                        html = render(
+                            "partials/run_finished.html", run_id=run_id, status=final_status
+                        )
                         yield _sse("run_finished", html)
                         break
                     else:
@@ -351,6 +379,7 @@ def create_app(
         ctx = presenters.report_context(summary, records)
         html = render("report.html", title=f"Report — {run_id}", ctx=ctx, request=request)
         from starlette.responses import HTMLResponse
+
         return HTMLResponse(html)
 
     @app.get("/runs")
@@ -358,6 +387,7 @@ def create_app(
         rows = presenters.run_list_view(await store.list_runs())
         html = render("runs.html", title="Runs", rows=rows, request=request)
         from starlette.responses import HTMLResponse
+
         return HTMLResponse(html)
 
     return app

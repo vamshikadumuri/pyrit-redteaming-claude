@@ -3,5 +3,6 @@ jinja2>=3.1
 aiosqlite>=0.20
 pytest>=8.0
 pytest-asyncio>=0.23
+pre-commit
 # PyRIT is NOT installed here — it ships inside ghcr.io/vamshikadumuri/pyrit:0.13.0-v2
 # (needed only by scorer.py / Task 5 and later plans).
