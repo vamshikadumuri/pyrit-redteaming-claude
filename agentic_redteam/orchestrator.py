@@ -41,7 +41,7 @@ class Orchestrator:
 
     async def run(self, request: RunRequest) -> RunSummary:
         cfg = request.config
-        self._store.create_run(request)
+        await self._store.create_run(request)
 
         objectives, notes = await source_objectives(
             self._catalog, plugin_ids=cfg.plugin_ids, profile=cfg.profile, llm=self._llm,
@@ -50,12 +50,12 @@ class Orchestrator:
         plans = resolve(cfg, self._catalog, objectives)
 
         total_objs = sum(len(v) for v in objectives.values())
-        self._store.add_audit(run_id=cfg.run_id, requested_by=request.requested_by,
-                              target_endpoint=request.target.endpoint, objective_count=total_objs,
-                              detail="; ".join(f"{k}: {v}" for k, v in notes.items()))
+        await self._store.add_audit(run_id=cfg.run_id, requested_by=request.requested_by,
+                                    target_endpoint=request.target.endpoint, objective_count=total_objs,
+                                    detail="; ".join(f"{k}: {v}" for k, v in notes.items()))
 
         summary = RunSummary(run_id=cfg.run_id, status="running", total=len(plans))
-        self._store.set_status(cfg.run_id, "running")
+        await self._store.set_status(cfg.run_id, "running")
         await self._bus.publish(ProgressEvent(run_id=cfg.run_id, kind="run_started",
                                               completed=0, total=len(plans)))
 
@@ -71,7 +71,7 @@ class Orchestrator:
                     record = await self._executor(plan)
                 except Exception as e:                 # harness failure -> error record; run continues
                     record = ExecutionRecord.from_plan(plan, status="error", error=str(e))
-                self._store.save_execution(record)
+                await self._store.save_execution(record)
                 summary.completed += 1
                 summary.succeeded += int(record.status == "succeeded")
                 summary.errors += int(record.status == "error")
@@ -83,7 +83,7 @@ class Orchestrator:
         await asyncio.gather(*[_one(p) for p in plans])
 
         summary.status = "stopped" if cfg.run_id in self._cancelled else "completed"
-        self._store.save_summary(summary)
+        await self._store.save_summary(summary)
         await self._bus.publish(ProgressEvent(run_id=cfg.run_id, kind="run_finished",
                                               completed=summary.completed, total=summary.total))
         return summary

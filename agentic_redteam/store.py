@@ -5,8 +5,9 @@
 list, live-view replay, and audit trail. JSON columns keep snapshots diffable."""
 from __future__ import annotations
 
-import sqlite3
 import time
+
+import aiosqlite
 
 from agentic_redteam.records import ExecutionRecord, RunRequest, RunSummary
 
@@ -47,70 +48,94 @@ class Store:
     file path for the web app / notebook so runs persist and the history survives."""
 
     def __init__(self, path: str = ":memory:"):
-        self._conn = sqlite3.connect(path)
-        self._conn.row_factory = sqlite3.Row
-        self._conn.executescript(_SCHEMA)
-        self._conn.commit()
+        self._path = path
+        self._db: aiosqlite.Connection | None = None
 
-    def close(self) -> None:
-        self._conn.close()
+    async def _open(self) -> None:
+        self._db = await aiosqlite.connect(self._path)
+        self._db.row_factory = aiosqlite.Row
+        await self._db.executescript(_SCHEMA)
+        await self._db.commit()
+
+    async def _ensure_open(self) -> None:
+        if self._db is None:
+            await self._open()
+
+    async def close(self) -> None:
+        if self._db is not None:
+            await self._db.close()
 
     # ---- runs ----
-    def create_run(self, request: RunRequest) -> None:
+    async def create_run(self, request: RunRequest) -> None:
+        await self._ensure_open()
         now = time.time()
-        self._conn.execute(
+        await self._db.execute(
             "INSERT INTO runs(run_id,status,requested_by,target_endpoint,config_json,"
             "summary_json,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?)",
             (request.config.run_id, "pending", request.requested_by, request.target.endpoint,
              request.config.model_dump_json(), "{}", now, now),
         )
-        self._conn.commit()
+        await self._db.commit()
 
-    def set_status(self, run_id: str, status: str) -> None:
-        self._conn.execute("UPDATE runs SET status=?, updated_at=? WHERE run_id=?",
-                           (status, time.time(), run_id))
-        self._conn.commit()
+    async def set_status(self, run_id: str, status: str) -> None:
+        await self._ensure_open()
+        await self._db.execute("UPDATE runs SET status=?, updated_at=? WHERE run_id=?",
+                               (status, time.time(), run_id))
+        await self._db.commit()
 
-    def save_summary(self, summary: RunSummary) -> None:
-        self._conn.execute(
+    async def save_summary(self, summary: RunSummary) -> None:
+        await self._ensure_open()
+        await self._db.execute(
             "UPDATE runs SET status=?, summary_json=?, updated_at=? WHERE run_id=?",
             (summary.status, summary.model_dump_json(), time.time(), summary.run_id))
-        self._conn.commit()
+        await self._db.commit()
 
-    def get_run(self, run_id: str) -> dict | None:
-        row = self._conn.execute("SELECT * FROM runs WHERE run_id=?", (run_id,)).fetchone()
+    async def get_run(self, run_id: str) -> dict | None:
+        await self._ensure_open()
+        async with self._db.execute("SELECT * FROM runs WHERE run_id=?", (run_id,)) as cur:
+            row = await cur.fetchone()
         return dict(row) if row else None
 
-    def list_runs(self) -> list[dict]:
-        rows = self._conn.execute("SELECT * FROM runs ORDER BY created_at DESC").fetchall()
+    async def list_runs(self) -> list[dict]:
+        await self._ensure_open()
+        async with self._db.execute("SELECT * FROM runs ORDER BY created_at DESC") as cur:
+            rows = await cur.fetchall()
         return [dict(r) for r in rows]
 
     # ---- executions ----
-    def save_execution(self, record: ExecutionRecord) -> None:
-        self._conn.execute(
+    async def save_execution(self, record: ExecutionRecord) -> None:
+        await self._ensure_open()
+        await self._db.execute(
             "INSERT OR REPLACE INTO executions(run_id,plugin_id,strategy_id,objective_id,"
             "status,record_json) VALUES(?,?,?,?,?,?)",
             (record.run_id, record.plugin_id, record.strategy_id, record.objective_id,
              record.status, record.model_dump_json()),
         )
-        self._conn.commit()
+        await self._db.commit()
 
-    def get_executions(self, run_id: str) -> list[ExecutionRecord]:
-        rows = self._conn.execute(
+    async def get_executions(self, run_id: str) -> list[ExecutionRecord]:
+        await self._ensure_open()
+        async with self._db.execute(
             "SELECT record_json FROM executions WHERE run_id=? ORDER BY plugin_id,strategy_id",
-            (run_id,)).fetchall()
+            (run_id,)
+        ) as cur:
+            rows = await cur.fetchall()
         return [ExecutionRecord.model_validate_json(r["record_json"]) for r in rows]
 
     # ---- audit ----
-    def add_audit(self, *, run_id: str, requested_by: str, target_endpoint: str,
-                  objective_count: int, detail: str = "") -> None:
-        self._conn.execute(
+    async def add_audit(self, *, run_id: str, requested_by: str, target_endpoint: str,
+                        objective_count: int, detail: str = "") -> None:
+        await self._ensure_open()
+        await self._db.execute(
             "INSERT INTO audit_log(run_id,requested_by,target_endpoint,objective_count,"
             "created_at,detail) VALUES(?,?,?,?,?,?)",
             (run_id, requested_by, target_endpoint, objective_count, time.time(), detail))
-        self._conn.commit()
+        await self._db.commit()
 
-    def get_audit(self, run_id: str) -> list[dict]:
-        rows = self._conn.execute(
-            "SELECT * FROM audit_log WHERE run_id=? ORDER BY created_at", (run_id,)).fetchall()
+    async def get_audit(self, run_id: str) -> list[dict]:
+        await self._ensure_open()
+        async with self._db.execute(
+            "SELECT * FROM audit_log WHERE run_id=? ORDER BY created_at", (run_id,)
+        ) as cur:
+            rows = await cur.fetchall()
         return [dict(r) for r in rows]

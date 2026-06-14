@@ -59,7 +59,7 @@ class RunManager:
                 return await orch.run(request)
             except Exception as exc:
                 _log.error("Run %s failed: %s", run_id, exc, exc_info=True)
-                self._store.set_status(run_id, "failed")
+                await self._store.set_status(run_id, "failed")
                 await self._bus.publish(ProgressEvent(
                     run_id=run_id, kind="run_finished", completed=0, total=0))
 

@@ -35,11 +35,10 @@ def test_manager_runs_to_completion_and_persists():
     async def go():
         run_id = mgr.start(req)
         await mgr.wait(run_id)
-        return run_id
+        assert (await store.get_run(run_id))["status"] == "completed"
+        assert len(await store.get_executions(run_id)) == 2
 
-    rid = asyncio.run(go())
-    assert store.get_run(rid)["status"] == "completed"
-    assert len(store.get_executions(rid)) == 2
+    asyncio.run(go())
 
 
 def test_manager_stop_cancels_pending():
@@ -64,7 +63,7 @@ def test_manager_stop_cancels_pending():
         await asyncio.sleep(0.05)   # let it start
         mgr.stop("r2")
         await mgr.wait("r2")
+        run = await store.get_run("r2")
+        assert run["status"] == "stopped"
 
     asyncio.run(go())
-    run = store.get_run("r2")
-    assert run["status"] == "stopped"

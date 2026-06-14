@@ -44,8 +44,8 @@ async def test_run_sources_resolves_executes_and_persists():
     # 1 plugin x 2 strategies x 2 objectives = 4 executions
     assert summary.total == 4 and summary.completed == 4 and summary.succeeded == 4
     assert summary.status == "completed"
-    assert store.get_run("run-1")["status"] == "completed"
-    assert len(store.get_executions("run-1")) == 4
+    assert (await store.get_run("run-1"))["status"] == "completed"
+    assert len(await store.get_executions("run-1")) == 4
 
 
 @pytest.mark.asyncio
@@ -54,7 +54,7 @@ async def test_run_writes_audit_entry_with_objective_count():
     orch = Orchestrator(cat, store, llm=_fake_llm(json.dumps(["a", "b"])),
                         executor=_succeed_executor())
     await orch.run(_request(["excessive-agency"], ["basic"]))
-    audit = store.get_audit("run-1")
+    audit = await store.get_audit("run-1")
     assert len(audit) == 1 and audit[0]["objective_count"] == 2
     assert audit[0]["requested_by"] == "vamshi"
 
@@ -70,7 +70,7 @@ async def test_executor_failure_becomes_error_record_run_continues():
     orch = Orchestrator(cat, store, llm=_fake_llm(json.dumps(["a"])), executor=flaky)
     summary = await orch.run(_request(["excessive-agency"], ["basic", "crescendo"]))
     assert summary.completed == 2 and summary.errors == 1 and summary.status == "completed"
-    statuses = sorted(r.status for r in store.get_executions("run-1"))
+    statuses = sorted(r.status for r in await store.get_executions("run-1"))
     assert statuses == ["defended", "error"]
 
 
@@ -79,7 +79,7 @@ async def test_progress_events_emitted_start_perexec_finish():
     cat, store = load_catalog(), Store()
     orch = Orchestrator(cat, store, llm=_fake_llm(json.dumps(["a", "b"])),
                         executor=_succeed_executor())
-    q = orch.bus.subscribe()
+    q = orch.bus.subscribe()  # returns plain Queue (Phase 1b will return tuple)
     await orch.run(_request(["excessive-agency"], ["basic"]))
     kinds = []
     while not q.empty():

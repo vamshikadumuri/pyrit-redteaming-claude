@@ -108,6 +108,7 @@ def create_app(
 
     @asynccontextmanager
     async def _lifespan(application: FastAPI):
+        await store._open()
         try:
             from pyrit.setup import IN_MEMORY, initialize_pyrit_async
             await initialize_pyrit_async(memory_db_type=IN_MEMORY)
@@ -253,7 +254,7 @@ def create_app(
 
     @app.get("/runs/{run_id}")
     async def run_detail(run_id: str, request: Request):
-        row = store.get_run(run_id)
+        row = await store.get_run(run_id)
         if row and row.get("summary_json") and row["summary_json"] != "{}":
             try:
                 summary = RunSummary.model_validate_json(row["summary_json"])
@@ -261,7 +262,7 @@ def create_app(
                 summary = RunSummary(run_id=run_id, status=row.get("status", "pending"))
         else:
             summary = RunSummary(run_id=run_id, status=(row["status"] if row else "pending"))
-        records = store.get_executions(run_id)
+        records = await store.get_executions(run_id)
         ctx = presenters.report_context(summary, records)
         html = render("live.html", title=f"Run {run_id}", run_id=run_id, ctx=ctx, request=request)
         from starlette.responses import HTMLResponse
@@ -273,7 +274,7 @@ def create_app(
 
         async def generate():
             # Replay already-completed executions from the store
-            for rec in store.get_executions(run_id):
+            for rec in await store.get_executions(run_id):
                 html = render("partials/feed_row.html",
                               plugin_id=rec.plugin_id,
                               strategy_id=rec.strategy_id,
@@ -281,7 +282,7 @@ def create_app(
                 yield _sse("execution_done", html)
 
             # Check if run is already final
-            row = store.get_run(run_id)
+            row = await store.get_run(run_id)
             if row and row.get("status") in _FINAL:
                 html = render("partials/run_finished.html",
                               run_id=run_id, status=row["status"])
@@ -307,7 +308,7 @@ def create_app(
                                   status=event.status)
                     yield _sse("execution_done", html)
                 elif event.kind == "run_finished":
-                    row = store.get_run(run_id)
+                    row = await store.get_run(run_id)
                     final_status = row["status"] if row else "completed"
                     html = render("partials/run_finished.html",
                                   run_id=run_id, status=final_status)
@@ -326,12 +327,12 @@ def create_app(
 
     @app.get("/runs/{run_id}/report.json")
     async def run_report_json(run_id: str):
-        records = store.get_executions(run_id)
+        records = await store.get_executions(run_id)
         return JSONResponse(build_report(records))
 
     @app.get("/runs/{run_id}/report")
     async def run_report(run_id: str, request: Request):
-        row = store.get_run(run_id)
+        row = await store.get_run(run_id)
         if row and row.get("summary_json") and row["summary_json"] != "{}":
             try:
                 summary = RunSummary.model_validate_json(row["summary_json"])
@@ -339,7 +340,7 @@ def create_app(
                 summary = RunSummary(run_id=run_id, status=row.get("status", "pending"))
         else:
             summary = RunSummary(run_id=run_id, status=(row["status"] if row else "unknown"))
-        records = store.get_executions(run_id)
+        records = await store.get_executions(run_id)
         ctx = presenters.report_context(summary, records)
         html = render("report.html", title=f"Report — {run_id}", ctx=ctx, request=request)
         from starlette.responses import HTMLResponse
@@ -347,7 +348,7 @@ def create_app(
 
     @app.get("/runs")
     async def run_list(request: Request):
-        rows = presenters.run_list_view(store.list_runs())
+        rows = presenters.run_list_view(await store.list_runs())
         html = render("runs.html", title="Runs", rows=rows, request=request)
         from starlette.responses import HTMLResponse
         return HTMLResponse(html)
