@@ -71,8 +71,8 @@ class Plugin(BaseModel):
     objective_source: ObjectiveSource
     category_group: str
     framework_refs: FrameworkRefs = Field(default_factory=FrameworkRefs)
-    objective_description: str = ""
-    objective_seed_hint: str = ""
+    risk_description: str = ""
+    generation_hint: str = ""
     grading_rubric: str = ""
     rubric_kind: RubricKind
     seed_dataset: str | None = None

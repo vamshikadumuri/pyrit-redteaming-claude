@@ -76,8 +76,8 @@ def build_plugins(rows: list[dict]) -> list[dict]:
                 "owasp_api": _codes(r.get("OWASP API Top 10", "")),
                 "atlas": _codes(r.get("MITRE ATLAS", ""), atlas=True),
             },
-            "objective_description": r.get("Objective (description)", "").strip(),
-            "objective_seed_hint": r.get(
+            "risk_description": r.get("Objective (description)", "").strip(),
+            "generation_hint": r.get(
                 "Imperative Objective Seed / Attacker-Goal Hint (draft)", "").strip(),
             "grading_rubric": rubric.strip(),
             "rubric_kind": _rubric_kind(pid, rubric),
