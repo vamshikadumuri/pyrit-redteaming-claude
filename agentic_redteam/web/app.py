@@ -106,6 +106,9 @@ def create_app(
 ) -> FastAPI:
     from contextlib import asynccontextmanager
 
+    catalog = load_catalog()
+    store = Store(store_path)
+
     @asynccontextmanager
     async def _lifespan(application: FastAPI):
         await store._open()
@@ -114,11 +117,12 @@ def create_app(
             await initialize_pyrit_async(memory_db_type=IN_MEMORY)
         except ImportError:
             pass  # PyRIT not installed (laptop / test environment)
-        yield
+        try:
+            yield
+        finally:
+            await store.close()
 
     app = FastAPI(lifespan=_lifespan)
-    catalog = load_catalog()
-    store = Store(store_path)
     if exec_factory is None:
         exec_factory = live.real_executor_factory
     if llm_factory is None:

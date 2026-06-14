@@ -1,6 +1,6 @@
 # agentic_redteam/store.py
 """SQLite app store (spec §12): runs, per-execution summaries, and the audit log
-(the authorization record per run). Pure stdlib sqlite3 — no PyRIT. PyRIT memory
+(the authorization record per run). Uses aiosqlite — no PyRIT. PyRIT memory
 (DuckDB) holds conversations/scores; this store is the app-side index for the run
 list, live-view replay, and audit trail. JSON columns keep snapshots diffable."""
 from __future__ import annotations
@@ -52,6 +52,8 @@ class Store:
         self._db: aiosqlite.Connection | None = None
 
     async def _open(self) -> None:
+        if self._db is not None:
+            return
         self._db = await aiosqlite.connect(self._path)
         self._db.row_factory = aiosqlite.Row
         await self._db.executescript(_SCHEMA)
