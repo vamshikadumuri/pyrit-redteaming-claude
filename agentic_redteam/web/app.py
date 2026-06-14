@@ -6,7 +6,8 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
 from agentic_redteam.catalog.loader import load_catalog
@@ -71,5 +72,17 @@ def create_app(
 
     app.include_router(wizard.router)
     app.include_router(runs.router)
+
+    @app.exception_handler(404)
+    async def not_found(request: Request, exc: HTTPException) -> HTMLResponse:
+        return HTMLResponse("<h1>404 Not Found</h1>", status_code=404)
+
+    @app.exception_handler(500)
+    async def server_error(request: Request, exc: Exception) -> HTMLResponse:
+        return HTMLResponse("<h1>500 Internal Server Error</h1>", status_code=500)
+
+    @app.get("/health")
+    async def health() -> dict:
+        return {"status": "ok"}
 
     return app

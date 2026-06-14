@@ -23,7 +23,7 @@ def _fake_llm_factory(request):
     return _llm
 
 
-def test_manager_runs_to_completion_and_persists():
+async def test_manager_runs_to_completion_and_persists():
     cat, store = load_catalog(), Store()
     mgr = RunManager(cat, store, executor_factory=_fake_exec_factory, llm_factory=_fake_llm_factory)
     m = ModelConfig(endpoint="http://t/v1", model_name="t")
@@ -33,19 +33,15 @@ def test_manager_runs_to_completion_and_persists():
         judge=m,
         requested_by="t",
     )
-
-    async def go():
-        run_id = mgr.start(req)
-        await mgr.wait(run_id)
-        run_row = await store.get_run(run_id)
-        assert run_row is not None
-        assert run_row["status"] == "completed"
-        assert len(await store.get_executions(run_id)) == 2
-
-    asyncio.run(go())
+    run_id = mgr.start(req)
+    await mgr.wait(run_id)
+    run_row = await store.get_run(run_id)
+    assert run_row is not None
+    assert run_row["status"] == "completed"
+    assert len(await store.get_executions(run_id)) == 2
 
 
-def test_manager_stop_cancels_pending():
+async def test_manager_stop_cancels_pending():
     cat, store = load_catalog(), Store()
 
     async def _slow_exec(plan: AttackPlan) -> ExecutionRecord:
@@ -62,14 +58,10 @@ def test_manager_stop_cancels_pending():
         judge=m,
         requested_by="t",
     )
-
-    async def go():
-        mgr.start(req)
-        await asyncio.sleep(0.05)  # let it start
-        mgr.stop("r2")
-        await mgr.wait("r2")
-        run = await store.get_run("r2")
-        assert run is not None
-        assert run["status"] == "stopped"
-
-    asyncio.run(go())
+    mgr.start(req)
+    await asyncio.sleep(0.05)  # let it start
+    mgr.stop("r2")
+    await mgr.wait("r2")
+    run = await store.get_run("r2")
+    assert run is not None
+    assert run["status"] == "stopped"

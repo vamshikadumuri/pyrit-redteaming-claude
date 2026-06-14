@@ -17,7 +17,7 @@ from agentic_redteam.web import presenters
 from agentic_redteam.web.deps import get_catalog, get_manager, get_store
 from agentic_redteam.web.manager import RunManager
 from agentic_redteam.web.render import render
-from agentic_redteam.web.utils import _build_run_request, _make_sse_generator, _parse_form
+from agentic_redteam.web.utils import _build_run_request, _make_sse_generator
 
 _log = logging.getLogger(__name__)
 
@@ -35,7 +35,11 @@ async def create_run(
     if "application/json" in content_type:
         data = await request.json()
     else:
-        data = await _parse_form(request)
+        form = await request.form()
+        data = {}
+        for k in form:
+            vals = form.getlist(k)
+            data[k] = vals if k in ("plugin_ids", "strategy_ids") or len(vals) > 1 else vals[0]
 
     run_id, req = _build_run_request(data, catalog)
     manager.start(req)

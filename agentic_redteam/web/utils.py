@@ -12,7 +12,7 @@ import logging
 from pathlib import Path
 from uuid import uuid4
 
-from fastapi import Request
+from starlette.requests import Request
 
 from agentic_redteam.config import ModelConfig
 from agentic_redteam.engine.plan import RunConfig
@@ -85,18 +85,6 @@ def _sse(event: str, html: str) -> str:
     # SSE format: event name + single-line data (strip internal newlines)
     payload = html.replace("\n", " ").replace("\r", "")
     return f"event: {event}\ndata: {payload}\n\n"
-
-
-async def _parse_form(request: Request) -> dict:
-    """Parse application/x-www-form-urlencoded without python-multipart."""
-    from urllib.parse import parse_qs
-
-    body = await request.body()
-    raw = parse_qs(body.decode("utf-8"), keep_blank_values=True)
-    data: dict = {}
-    for k, vals in raw.items():
-        data[k] = vals if k in ("plugin_ids", "strategy_ids") or len(vals) > 1 else vals[0]
-    return data
 
 
 def _build_run_request(data: dict, catalog) -> tuple[str, RunRequest]:

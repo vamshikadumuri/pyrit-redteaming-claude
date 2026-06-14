@@ -10,9 +10,19 @@ from starlette.responses import HTMLResponse
 from agentic_redteam.catalog.loader import Catalog
 from agentic_redteam.web.deps import get_catalog
 from agentic_redteam.web.render import render
-from agentic_redteam.web.utils import _parse_form, _wizard_ctx
+from agentic_redteam.web.utils import _wizard_ctx
 
 router = APIRouter(tags=["wizard"])
+
+
+async def _form_data(request: Request) -> dict:
+    """Parse multipart/form-urlencoded via python-multipart (FastAPI native)."""
+    form = await request.form()
+    data: dict = {}
+    for k in form:
+        vals = form.getlist(k)
+        data[k] = vals if k in ("plugin_ids", "strategy_ids") or len(vals) > 1 else vals[0]
+    return data
 
 
 @router.get("/")
@@ -47,7 +57,7 @@ async def wizard_step_post(
     catalog: Annotated[Catalog, Depends(get_catalog)],
 ) -> HTMLResponse:
     """Re-render step n with form data (Back navigation / completed-step edit)."""
-    data = await _parse_form(request)
+    data = await _form_data(request)
     ctx = _wizard_ctx(n, data, catalog)
     return HTMLResponse(render(f"partials/wizard_step_{n}.html", **ctx))
 
@@ -58,7 +68,7 @@ async def wizard_step_next(
     request: Request,
     catalog: Annotated[Catalog, Depends(get_catalog)],
 ) -> HTMLResponse:
-    data = await _parse_form(request)
+    data = await _form_data(request)
 
     errors: dict[str, str] = {}
     if n == 1:
