@@ -6,11 +6,14 @@ list, live-view replay, and audit trail. JSON columns keep snapshots diffable.""
 
 from __future__ import annotations
 
+import logging
 import time
 
 import aiosqlite
 
 from agentic_redteam.records import ExecutionRecord, RunRequest, RunSummary
+
+_log = logging.getLogger(__name__)
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS runs (
@@ -112,6 +115,8 @@ class Store:
         await self._ensure_open()
         async with self._conn.execute("SELECT * FROM runs WHERE run_id=?", (run_id,)) as cur:
             row = await cur.fetchone()
+        if row is None:
+            _log.debug("get_run(%r) returned None — run not found in store", run_id)
         return dict(row) if row else None
 
     async def list_runs(self) -> list[dict]:

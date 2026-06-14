@@ -65,6 +65,7 @@ class RunManager:
                     ProgressEvent(run_id=run_id, kind="run_finished", completed=0, total=0)
                 )
 
+        _log.info("Run %s started", run_id)
         task = asyncio.create_task(_run_with_error_handling())
         self._runs[run_id] = (orch, task)
         return run_id

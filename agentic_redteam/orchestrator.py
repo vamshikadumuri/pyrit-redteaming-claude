@@ -9,6 +9,7 @@ via reports.memory_query.make_executor()."""
 from __future__ import annotations
 
 import asyncio
+import logging
 from collections.abc import Awaitable, Callable
 
 from agentic_redteam.catalog.loader import Catalog
@@ -18,6 +19,8 @@ from agentic_redteam.progress import ProgressBus, ProgressEvent
 from agentic_redteam.records import ExecutionRecord, RunRequest, RunSummary
 from agentic_redteam.sourcing import source_objectives
 from agentic_redteam.store import Store
+
+_log = logging.getLogger(__name__)
 
 Executor = Callable[[AttackPlan], Awaitable[ExecutionRecord]]
 
@@ -62,6 +65,12 @@ class Orchestrator:
             datasets_dir=request.datasets_dir,
         )
         plans = resolve(cfg, self._catalog, objectives)
+        _log.info(
+            "Run %s started: %d plans across %s plugins",
+            cfg.run_id,
+            len(plans),
+            len(cfg.plugin_ids),
+        )
 
         total_objs = sum(len(v) for v in objectives.values())
         await self._store.add_audit(
@@ -90,6 +99,13 @@ class Orchestrator:
                     record = await self._executor(plan)
                 except Exception as e:  # harness failure -> error record; run continues
                     record = ExecutionRecord.from_plan(plan, status="error", error=str(e))
+                _log.debug(
+                    "Execution done: %s/%s/%s → %s",
+                    record.plugin_id,
+                    record.strategy_id,
+                    record.objective_id,
+                    record.status,
+                )
                 await self._store.save_execution(record)
                 summary.completed += 1
                 summary.succeeded += int(record.status == "succeeded")
@@ -111,6 +127,15 @@ class Orchestrator:
 
         summary.status = "stopped" if cfg.run_id in self._cancelled else "completed"
         await self._store.save_summary(summary)
+        _log.info(
+            "Run %s %s: %d/%d completed, %d succeeded, %d errors",
+            cfg.run_id,
+            summary.status,
+            summary.completed,
+            summary.total,
+            summary.succeeded,
+            summary.errors,
+        )
         await self._bus.publish(
             ProgressEvent(
                 run_id=cfg.run_id,

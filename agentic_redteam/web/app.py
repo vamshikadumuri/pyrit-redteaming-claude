@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 from pathlib import Path
 from uuid import uuid4
 
@@ -23,6 +24,8 @@ from agentic_redteam.store import Store
 from agentic_redteam.web import live, presenters
 from agentic_redteam.web.manager import RunManager
 from agentic_redteam.web.render import render
+
+_log = logging.getLogger(__name__)
 
 _STATIC = Path(__file__).resolve().parent / "static"
 _FINAL = {"completed", "stopped", "failed"}
@@ -122,9 +125,11 @@ def create_app(
             await initialize_pyrit_async(memory_db_type=IN_MEMORY)
         except ImportError:
             pass  # PyRIT not installed (laptop / test environment)
+        _log.info("App startup complete (store=%s)", store_path)
         try:
             yield
         finally:
+            _log.info("App shutdown")
             await store.close()
 
     app = FastAPI(lifespan=_lifespan)
@@ -277,6 +282,7 @@ def create_app(
 
         run_id, req = _build_run_request(data)
         manager.start(req)
+        _log.info("Run %s created by %s", run_id, req.requested_by)
         return RedirectResponse(f"/runs/{run_id}", status_code=303)
 
     @app.get("/runs/{run_id}")
@@ -301,6 +307,7 @@ def create_app(
         q, unsub = manager.bus.subscribe()
 
         async def generate():
+            _log.info("SSE client connected for run %s", run_id)
             try:
                 # Replay already-completed executions from the store
                 for rec in await store.get_executions(run_id):
@@ -351,6 +358,7 @@ def create_app(
                         d = event.model_dump()
                         yield _sse(event.kind, json.dumps(d))
             finally:
+                _log.info("SSE client disconnected for run %s", run_id)
                 unsub()
 
         return StreamingResponse(generate(), media_type="text/event-stream")
