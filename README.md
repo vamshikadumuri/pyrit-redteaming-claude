@@ -16,30 +16,9 @@ Perfect for testing whether your LLM-powered app can withstand prompt injection,
 
 ## Quick Start (Web App)
 
-### Demo Mode (No Live Endpoints Needed)
-
 ```bash
 docker run --rm \
   -e PYTHONPATH=/work \
-  -e DEMO_MODE=1 \
-  -p 8006:8006 \
-  -v "$(pwd):/work" \
-  -w /work \
-  --entrypoint python \
-  ghcr.io/vamshikadumuri/pyrit:0.13.0-v2 \
-  scripts/serve.py
-```
-
-Then open **http://localhost:8006** in your browser.
-
-### Live Mode (Real Endpoints)
-
-For live testing against your own endpoints, set the required environment variables:
-
-```bash
-docker run --rm \
-  -e PYTHONPATH=/work \
-  -e DEMO_MODE=0 \
   -e OPENAI_CHAT_KEY="<your-key>" \
   -e ATTACKER_ENDPOINT="http://host.docker.internal:8001/v1" \
   -e ATTACKER_MODEL="local-llm" \
@@ -50,13 +29,14 @@ docker run --rm \
   scripts/serve.py
 ```
 
+Then open **http://localhost:8006** in your browser.
+
 ---
 
 ## Environment Variables
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
-| `DEMO_MODE` | No | — | Set to `1` for offline demo (no real endpoints needed) |
 | `APP_DB` | No | `app.sqlite3` | SQLite database path for run history |
 | `PORT` | No | `8006` | Web server port |
 | `OPENAI_CHAT_KEY` | Live only | — | API key for target/judge gateway |
@@ -91,7 +71,6 @@ The 4 skipped tests require packages only available inside the container:
 ```bash
 docker run --rm --entrypoint python \
   -e PYTHONPATH=/work \
-  -e DEMO_MODE=1 \
   -v "$(pwd):/work" \
   -w /work \
   ghcr.io/vamshikadumuri/pyrit:0.13.0-v2 \
@@ -104,7 +83,7 @@ Expected result: **138 passed, 1 skipped** (1 skip = live-endpoint smoke test, g
 
 ## Architecture
 
-- **Pure modules** (`presenters.py`, `render.py`, `manager.py`, `demo.py`) — testable on laptop without external dependencies
+- **Pure modules** (`presenters.py`, `render.py`, `manager.py`) — testable on laptop without external dependencies
 - **Web layer** (`app.py`) — FastAPI + SQLite; runs in container only
 - **PyRIT integration** (`engine/adapter.py`, `reports/memory_query.py`) — isolated to specific modules for easy substitution
 - **Frontend** — htmx 2.0.4 + Alpine.js 3.14.9 + Tailwind CSS (committed to `web/static/`); see below

@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import asyncio
 import json
-import os
 from pathlib import Path
 from uuid import uuid4
 
@@ -20,7 +19,7 @@ from agentic_redteam.engine.profile import AppProfile
 from agentic_redteam.records import RunRequest, RunSummary
 from agentic_redteam.reports.aggregation import build_report
 from agentic_redteam.store import Store
-from agentic_redteam.web import demo, live, presenters
+from agentic_redteam.web import live, presenters
 from agentic_redteam.web.manager import RunManager
 from agentic_redteam.web.render import render
 
@@ -99,26 +98,30 @@ async def _parse_form(request: Request) -> dict:
     return data
 
 
-def create_app(*, store_path: str = ":memory:") -> FastAPI:
+def create_app(
+    *,
+    store_path: str = ":memory:",
+    exec_factory=None,
+    llm_factory=None,
+) -> FastAPI:
     from contextlib import asynccontextmanager
 
     @asynccontextmanager
     async def _lifespan(application: FastAPI):
-        if os.environ.get("DEMO_MODE") != "1":
-            try:
-                from pyrit.setup import IN_MEMORY, initialize_pyrit_async
-                await initialize_pyrit_async(memory_db_type=IN_MEMORY)
-            except ImportError:
-                pass  # PyRIT not installed (laptop / test environment)
+        try:
+            from pyrit.setup import IN_MEMORY, initialize_pyrit_async
+            await initialize_pyrit_async(memory_db_type=IN_MEMORY)
+        except ImportError:
+            pass  # PyRIT not installed (laptop / test environment)
         yield
 
     app = FastAPI(lifespan=_lifespan)
     catalog = load_catalog()
     store = Store(store_path)
-    if os.environ.get("DEMO_MODE") == "1":
-        exec_factory, llm_factory = demo.demo_executor_factory, demo.demo_llm_factory
-    else:
-        exec_factory, llm_factory = live.real_executor_factory, live.real_llm_factory
+    if exec_factory is None:
+        exec_factory = live.real_executor_factory
+    if llm_factory is None:
+        llm_factory = live.real_llm_factory
     manager = RunManager(
         catalog,
         store,
