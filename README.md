@@ -29,6 +29,12 @@ JUDGE_LLM_API_KEY=sk-...
 
 ### Run (Docker)
 
+**Build once** (bakes app dependencies into a derived image — no install at startup):
+
+```bash
+docker build -t pyrit-redteam .
+```
+
 **Linux / macOS:**
 ```bash
 docker run -d \
@@ -37,9 +43,7 @@ docker run -d \
   -v "$(pwd):/workspace" \
   --env-file .env \
   -e APP_DB=/workspace/app.sqlite3 \
-  --entrypoint bash \
-  ghcr.io/vamshikadumuri/pyrit:0.14.0-v1 \
-  -c "uv pip install -q aiosqlite python-multipart && cd /workspace && PYTHONPATH=/workspace /opt/venv/bin/python scripts/serve.py"
+  pyrit-redteam
 ```
 
 **Windows (PowerShell):**
@@ -50,12 +54,12 @@ docker run -d `
   -v "${PWD}:/workspace" `
   --env-file .env `
   -e APP_DB=/workspace/app.sqlite3 `
-  --entrypoint bash `
-  ghcr.io/vamshikadumuri/pyrit:0.14.0-v1 `
-  -c "uv pip install -q aiosqlite python-multipart && cd /workspace && PYTHONPATH=/workspace /opt/venv/bin/python scripts/serve.py"
+  pyrit-redteam
 ```
 
 Then open **http://localhost:8006** in your browser.
+
+Your local code is bind-mounted — edits are live without a rebuild. Only re-run `docker build` if `requirements.txt` changes.
 
 **Stop:**
 ```bash
@@ -140,7 +144,10 @@ agentic_redteam/
 
 ### Laptop (pure modules)
 
+Install dev dependencies into a local venv first:
+
 ```bash
+pip install -r requirements-dev.txt
 pytest -q
 ```
 
@@ -149,18 +156,30 @@ Expected: ~143 passed, 1 skipped (PyRIT-only scorer tests skip without the conta
 ### Inside the container
 
 ```bash
-docker exec pyrit-redteam bash -c \
-  "cd /workspace && PYTHONPATH=/workspace /opt/venv/bin/python -m pytest -q \
-   --ignore=tests/web/test_demo.py"
+docker exec pyrit-redteam python -m pytest -q --ignore=tests/web/test_demo.py
 ```
 
 ---
 
-## How Docker Startup Works
+## How the Image is Built
 
-The image `ghcr.io/vamshikadumuri/pyrit:0.14.0-v1` provides PyRIT 0.14.0 in `/opt/venv`. Our code is mounted from the host at `/workspace`. The `-c` command installs the two missing dependencies (`aiosqlite`, `python-multipart`) via the image's built-in `uv` package manager at startup, then launches the web server.
+**PyRIT comes from the base image.** `Dockerfile` extends `ghcr.io/vamshikadumuri/pyrit:0.14.0-v1` (which ships PyRIT 0.14.0 in `/opt/venv`) and bakes in the app's remaining dependencies from `requirements.txt` at build time. No packages are installed at container startup.
 
-No image rebuild is needed — changes to your local code are live immediately via the volume mount.
+**App code is bind-mounted**, not baked into the image — edits on the host are live immediately. Only re-run `docker build` when `requirements.txt` changes.
+
+### Migrating to your org's image
+
+When your org provides a UBI-Python base image with PyRIT pre-installed, the migration is a one-line change in `Dockerfile`:
+
+```dockerfile
+# Change this line:
+ARG BASE_IMAGE=ghcr.io/vamshikadumuri/pyrit:0.14.0-v1
+
+# To your org image, e.g.:
+ARG BASE_IMAGE=registry.org.internal/ubi9-python311-pyrit:1.0
+```
+
+Also switch the `RUN` line from `uv pip install` to `pip install --no-cache-dir` (UBI images ship standard pip). Nothing in the app code changes.
 
 ---
 

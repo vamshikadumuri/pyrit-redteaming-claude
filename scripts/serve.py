@@ -1,5 +1,5 @@
-"""Run the web app inside pyrit:0.13.0-v2.
-OPENAI_CHAT_KEY=... ATTACKER_ENDPOINT=... ATTACKER_MODEL=... python scripts/serve.py
+"""Web server entry point. Runs as CMD inside the built Docker image.
+See Dockerfile and README for build/run instructions.
 """
 
 import os

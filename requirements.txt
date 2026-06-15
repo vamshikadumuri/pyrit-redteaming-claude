@@ -1,9 +1,11 @@
-pydantic>=2.6
+# App runtime dependencies. PyRIT is NOT listed here — it is provided by the base
+# Docker image (today: ghcr.io/vamshikadumuri/pyrit; later: your org UBI-Python image
+# with the org PyRIT package layered on). Keep this file the single source of truth
+# for everything-except-PyRIT so migrating to a new base is just a FROM swap.
+fastapi>=0.110
+uvicorn>=0.29
+httpx>=0.27
 jinja2>=3.1
+pydantic>=2.6
 aiosqlite>=0.20
 python-multipart>=0.0.9
-pytest>=8.0
-pytest-asyncio>=0.23
-pre-commit
-# PyRIT is NOT installed here — it ships inside ghcr.io/vamshikadumuri/pyrit:0.13.0-v2
-# (needed only by scorer.py / Task 5 and later plans).
