@@ -1,35 +1,65 @@
-# PyRIT AI Red-Teaming POC
+# PyRIT AI Red-Teaming
 
-A self-service web application and Jupyter notebook for red-teaming agentic AI systems using **PyRIT** (Python Risk Identification Toolkit) with **promptfoo's** curated attack taxonomy.
+A self-service web application and Jupyter notebook for red-teaming agentic AI systems using **PyRIT 0.14.0** with **promptfoo's** curated attack taxonomy.
 
 ## What This Is
 
-This POC combines:
-- **promptfoo catalog** (v0.121.13, commit 4a33ebc) — curated attack taxonomy, objectives, seed hints, and grading rubrics
-- **PyRIT engine** — orchestrates multi-turn adversarial attacks
-- **Web app** — self-service attack runner with run history and memory query UI
+- **promptfoo catalog** (v0.121.13) — curated attack taxonomy, objectives, and grading rubrics
+- **PyRIT 0.14.0 engine** — orchestrates single-turn and multi-turn adversarial attacks (Crescendo, Tree-of-Attacks, etc.)
+- **Web app** — self-service attack wizard, live run view, full report with re-run support
 - **Jupyter notebook** — exploratory red-teaming environment
-
-Perfect for testing whether your LLM-powered app can withstand prompt injection, jailbreaks, and other adversarial inputs.
 
 ---
 
-## Quick Start (Web App)
+## Quick Start
+
+### Prerequisites
+
+Create a `.env` file in the project root:
+
+```env
+ATTACKER_LLM_ENDPOINT=https://api.openai.com/v1
+ATTACKER_LLM_MODEL=gpt-4o-mini
+ATTACKER_LLM_API_KEY=sk-...
+
+JUDGE_LLM_ENDPOINT=https://api.openai.com/v1
+JUDGE_LLM_MODEL=gpt-4o-mini
+JUDGE_LLM_API_KEY=sk-...
+```
+
+### Run (Docker)
 
 ```bash
-docker run --rm \
-  -e PYTHONPATH=/work \
-  -e OPENAI_CHAT_KEY="<your-key>" \
-  -e ATTACKER_ENDPOINT="http://host.docker.internal:8001/v1" \
-  -e ATTACKER_MODEL="local-llm" \
+docker run -d \
+  --name pyrit-redteam \
   -p 8006:8006 \
-  -v "$(pwd):/work" \
-  -w /work \
-  ghcr.io/vamshikadumuri/pyrit:0.13.0-v2 \
-  scripts/serve.py
+  -v "$(pwd):/workspace" \
+  --env-file .env \
+  -e APP_DB=/workspace/app.sqlite3 \
+  --entrypoint bash \
+  ghcr.io/vamshikadumuri/pyrit:0.14.0-v1 \
+  /workspace/scripts/docker_serve.sh
 ```
 
 Then open **http://localhost:8006** in your browser.
+
+**Windows (PowerShell):**
+```powershell
+docker run -d `
+  --name pyrit-redteam `
+  -p 8006:8006 `
+  -v "${PWD}:/workspace" `
+  --env-file .env `
+  -e APP_DB=/workspace/app.sqlite3 `
+  --entrypoint bash `
+  ghcr.io/vamshikadumuri/pyrit:0.14.0-v1 `
+  /workspace/scripts/docker_serve.sh
+```
+
+**Stop:**
+```bash
+docker rm -f pyrit-redteam
+```
 
 ---
 
@@ -37,88 +67,106 @@ Then open **http://localhost:8006** in your browser.
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
-| `APP_DB` | No | `app.sqlite3` | SQLite database path for run history |
+| `APP_DB` | No | `app.sqlite3` | SQLite path for run history |
 | `PORT` | No | `8006` | Web server port |
-| `OPENAI_CHAT_KEY` | Live only | — | API key for target/judge gateway |
-| `ATTACKER_ENDPOINT` | Live only | — | vLLM attacker endpoint (e.g. `http://host.docker.internal:8001/v1`) |
-| `ATTACKER_MODEL` | Live only | — | Attacker model name (e.g. `llama2-7b`) |
+| `ATTACKER_LLM_ENDPOINT` | Yes | — | OpenAI-compatible attacker LLM endpoint |
+| `ATTACKER_LLM_MODEL` | Yes | — | Attacker model name |
+| `ATTACKER_LLM_API_KEY` | Yes | — | Attacker LLM API key |
+| `JUDGE_LLM_ENDPOINT` | Yes | — | OpenAI-compatible judge LLM endpoint |
+| `JUDGE_LLM_MODEL` | Yes | — | Judge model name |
+| `JUDGE_LLM_API_KEY` | Yes | — | Judge LLM API key |
+
+Target model endpoint and credentials are configured per-run in the wizard UI (Step 1).
 
 ---
 
-## Running Tests
+## Features
 
-### On Your Laptop
-(Pure modules only — no Docker or external dependencies)
+### Run Wizard
+6-step wizard: target model → attack plugins → adversarial LLM → judge → app profile → run config. Supports single-turn (`PromptSending`, `RolePlay`) and multi-turn (`Crescendo`, `TreeOfAttacksWithPruning`) strategies.
 
-```bash
-pyritpocvenv\Scripts\python.exe -m pytest -q
-```
+### Live Run View
+Real-time SSE feed showing each execution as it completes. Progress bar, stat cards, stop button.
 
-Expected result: **124 passed, 4 skipped**
+### Report
+- **Summary scorecard** — overall ASR, succeeded / defended / errors
+- **Findings accordion** — one card per successful attack with objective, conversation log (multi-turn), scorer verdict, and judge rationale
+- **All Executions table** — full transparency log with click-to-expand rows showing conversation, response, and rationale
+- **Framework scorecard** — ASR breakdown by OWASP LLM Top 10, OWASP Agentic, OWASP API, MITRE ATLAS
+- **Plugin × Strategy heatmap** — ASR grid across all tested combinations
+- **Sanity flags** — warns on implausible all-pass / all-fail results
+- **JSON export** — download full report as JSON
+- **Print** — print-friendly layout
 
-The 4 skipped tests require packages only available inside the container:
+### Re-run
+Every completed run stores its full configuration. Hit **↺ Re-run** from the report or live view to instantly launch an identical run with a new ID.
 
-| Skipped module | Reason | What it tests |
-|---|---|---|
-| `tests/engine/test_adapter.py` | needs `pyrit` | PyRIT attack class wiring, `build_target`, `build_attack` |
-| `tests/engine/test_scorer.py` | needs `pyrit` | polarity inversion, scorer routing, `InsecureCodeScorer` |
-| `tests/reports/test_memory_query.py` | needs `pyrit` | `_result_to_record`, `make_executor` |
-| `tests/web/test_app.py` | needs `fastapi` | FastAPI wizard/SSE/report routes (6 e2e tests) |
-
-### In Container
-(Full suite — adds PyRIT adapter + FastAPI e2e tests)
-
-```bash
-docker run --rm --entrypoint python \
-  -e PYTHONPATH=/work \
-  -v "$(pwd):/work" \
-  -w /work \
-  ghcr.io/vamshikadumuri/pyrit:0.13.0-v2 \
-  -m pytest -q
-```
-
-Expected result: **138 passed, 1 skipped** (1 skip = live-endpoint smoke test, gated by `RUN_LIVE=1`)
+### Conversation Log
+For multi-turn attacks (Crescendo, TAP), each execution record captures the full turn-by-turn exchange from PyRIT memory. Shown as a collapsible conversation timeline in the report.
 
 ---
 
 ## Architecture
 
-- **Pure modules** (`presenters.py`, `render.py`, `manager.py`) — testable on laptop without external dependencies
-- **Web layer** (`app.py`) — FastAPI + SQLite; runs in container only
-- **PyRIT integration** (`engine/adapter.py`, `reports/memory_query.py`) — isolated to specific modules for easy substitution
-- **Frontend** — htmx 2.0.4 + Alpine.js 3.14.9 + Tailwind CSS (committed to `web/static/`); see below
+```
+agentic_redteam/
+├── catalog/          # promptfoo plugin + strategy definitions (pure, no PyRIT)
+├── engine/
+│   ├── adapter.py    # ONLY module importing PyRIT attacks — AttackExecutor API
+│   ├── scorer.py     # PromptfooRubricScorer (TrueFalseScorer subclass)
+│   ├── plan.py       # AttackPlan, RunConfig (pure data)
+│   └── generate.py   # LLM-based objective generation
+├── orchestrator.py   # Fan-out: plugins × strategies × objectives → ExecutionRecords
+├── store.py          # aiosqlite app store (runs, executions, audit log)
+├── records.py        # ExecutionRecord, RunRequest, RunSummary (pure Pydantic)
+├── reports/
+│   ├── aggregation.py    # Pure: scorecard, heatmap, findings, sanity flags
+│   └── memory_query.py   # PyRIT CentralMemory → conversation log population
+└── web/
+    ├── app.py            # FastAPI app factory + lifespan
+    ├── routes/
+    │   ├── wizard.py     # GET/POST /wizard steps
+    │   └── runs.py       # /runs CRUD + /rerun + SSE events
+    ├── templates/        # Jinja2 — htmx 2.0.4 + Alpine.js + Tailwind CSS
+    └── static/           # Vendored JS/CSS (no external CDN)
+```
 
-### Frontend
-
-The web UI uses **htmx 2.0.4 + Alpine.js 3.14.9 + Tailwind CSS Play CDN** (all committed to `agentic_redteam/web/static/` — no external CDN required). Dark Pro theme across all pages. The wizard uses htmx partial swaps; the live run view uses htmx-ext-sse for streaming execution events.
+**Design principle:** PyRIT is isolated to two modules (`engine/adapter.py`, `reports/memory_query.py`). Everything else is pure Python, testable on the laptop without Docker.
 
 ---
 
-## Volumes & Paths
+## Running Tests
 
-The repository is mounted at `/work` inside the container. PyRIT runs inside the container and loads our package via `PYTHONPATH=/work`, so no `pip install` is needed—changes to your local repo are immediately visible in the container.
+### Laptop (pure modules)
 
-Run history and memory are persisted to `app.sqlite3` (or the path specified by `APP_DB`), which is also accessible from your host via the volume mount.
+```bash
+pytest -q
+```
+
+Expected: ~143 passed, 1 skipped (PyRIT-only scorer tests skip without the container)
+
+### Inside the container
+
+```bash
+docker exec pyrit-redteam bash -c \
+  "cd /workspace && PYTHONPATH=/workspace /opt/venv/bin/python -m pytest -q \
+   --ignore=tests/web/test_demo.py"
+```
 
 ---
 
-## Known Issues (Container Carry-Forwards)
+## How Docker Startup Works
 
-These are open unverified items that only manifest inside the container against real PyRIT 0.13.0-v2:
+The image `ghcr.io/vamshikadumuri/pyrit:0.14.0-v1` provides PyRIT 0.14.0 in `/opt/venv`. Our code is mounted from the host at `/workspace`. `scripts/docker_serve.sh` installs the two missing dependencies (`aiosqlite`, `python-multipart`) via `uv` at startup, then launches the web server.
 
-| # | Where | Issue | Workaround |
-|---|---|---|---|
-| B2 | `reports/memory_query.py` | `AttackResult` field names (`outcome`, `last_score`, `last_response`) not confirmed — uses `getattr` fallbacks | Tolerant fallbacks degrade gracefully; records may show blank rationale if names changed |
-| B3 | `reports/memory_query.py::records_from_memory` | Raises `NotImplementedError` — `CentralMemory` label-query API unconfirmed | Live reports read from SQLite store (not PyRIT memory) — reporting works; re-open-past-run path disabled |
-| B4 | `engine/adapter.py::execute_plan` | `memory_labels=` kwarg on `execute_async` wrapped in try/except — unknown which branch runs | Falls back to calling without labels; memory label queries may not work |
-| B5 | `engine/adapter.py::_build_converters` | `request_converter_configurations=` attachment on `PromptSendingAttack` not verified | Converter strategies (e.g. `leetspeak`) not exercised in Crescendo path; may silently fail |
-
-**Live view stats cards**: The Alpine.js `@htmx:sseMessage.window` listener in `live.html` should increment counters correctly — verify in the browser during an active run. If counters stay at 0, confirm htmx-ext-sse is dispatching the `htmx:sseMessage` event with `detail.type === 'execution_done'`.
+No image rebuild is needed — changes to your local code are live immediately via the volume mount.
 
 ---
 
 ## Attribution & Licensing
 
-- **promptfoo catalog** — MIT License (v0.121.13, commit 4a33ebc); taxonomy, attack descriptions, seed hints, and grading rubrics reused as static corpus from `promptfoo_plugins_catalog_1.xlsx`
-- **PyRIT** — Apache 2.0 License
-- **This POC** — See LICENSE file in repository root
+- **promptfoo catalog** — MIT License (v0.121.13, commit 4a33ebc)
+- **PyRIT** — Apache 2.0 License (Microsoft)
+- **htmx** — Zero-Clause BSD
+- **Alpine.js** — MIT License
+- **This project** — See LICENSE file
