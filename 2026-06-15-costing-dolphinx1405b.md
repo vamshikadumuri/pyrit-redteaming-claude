@@ -4,7 +4,7 @@
 
 **Source of weights:** On-prem MLflow registry → one-time push to GCP (no runtime internet egress required at serve time).
 
-**Pricing snapshot:** Figures below reflect `us-central1` rates current as of **2026-06-15**. GPU rates fluctuate with availability — re-verify in the [GCP pricing calculator](https://cloud.google.com/products/calculator) before committing budget.
+**Pricing provenance:** All dollar figures below are taken from Google's official [Accelerator-optimized VM pricing](https://cloud.google.com/products/compute/pricing/accelerator-optimized) price sheet, region `us-central1`, retrieved **2026-06-15**. GPU rates change; re-verify in the [pricing calculator](https://cloud.google.com/products/calculator) before committing budget.
 
 ---
 
@@ -14,8 +14,10 @@
 |---|---|
 | Cloud Run? | **No.** Hard-capped at 1 GPU/instance (L4 24 GB or RTX PRO 6000 Blackwell 96 GB). 405B needs 200–810 GB. |
 | Deployment model | Self-hosted multi-GPU node (GCE VM or Vertex custom endpoint) with vLLM, TP=8. |
-| Recommended instance | `a3-highgpu-8g` (8×H100 80 GB) **if** weights are quantized to FP8/INT4; `a3-ultragpu-8g` (8×H200 141 GB) if BF16 is required. |
-| Recommended run pattern | **Ephemeral / per-scan** (spin up → run → tear down). 24/7 serving is ~$63–64K/month and unnecessary for red-team workloads. |
+| Recommended instance | **`a3-ultragpu-8g` (8×H200, 1,128 GB)** — cheaper on-demand than the H100 node *and* more memory; runs BF16 or quantized. Drop to `a3-highgpu-8g` (8×H100, 640 GB) only for the cheaper spot rate, which forces FP8/INT4. |
+| Cheapest (quantized) | `g4-standard-384` (8×RTX PRO 6000, 768 GB) at $36/hr — **but PCIe-only, no NVLink**; validate TP=8 throughput first. |
+| Cheapest (BF16) | `a4-highgpu-8g` (8×B200, 1,440 GB) via DWS spot ($34.24/hr) or flex-start ($64.44/hr). |
+| Recommended run pattern | **Ephemeral / per-scan** (spin up → run → tear down) or DWS flex-start. 24/7 serving is ~$62–65K/month and unnecessary for red-team workloads. |
 | Compliance | Uncensored model → confirm GCE AUP vs. Generative AI Prohibited Use Policy posture with GCP account team / legal before deploy. |
 
 ---
@@ -33,60 +35,65 @@ No multi-GPU, no NVLink tensor parallelism. The 405B model's minimum footprint (
 
 ## 3. Memory footprint by precision
 
-| Precision | Weights (~405B params) | Fits on 8×H100 (640 GB)? | Fits on 8×H200 (1,128 GB)? |
-|---|---|---|---|
-| BF16 / FP16 | ~810 GB | ❌ No | ✅ Yes |
-| FP8 | ~405 GB | ✅ Yes (+~235 GB KV/overhead) | ✅ Yes (ample) |
-| INT4 / AWQ | ~205–230 GB | ✅ Yes (large headroom) | ✅ Yes |
+| Precision | Weights (~405B params) | Fits 8×H100 (640 GB)? | Fits 8×RTX PRO 6000 (768 GB)? | Fits 8×H200 (1,128 GB)? | Fits 8×B200 (1,440 GB)? |
+|---|---|---|---|---|---|
+| BF16 / FP16 | ~810 GB | ❌ | ❌ | ✅ | ✅ |
+| FP8 | ~405 GB | ✅ | ✅ | ✅ | ✅ |
+| INT4 / AWQ | ~205–230 GB | ✅ | ✅ | ✅ | ✅ |
 
-> Weights only; add KV cache + activation overhead on top. Since the weights are owned (from MLflow), quantizing to FP8 or INT4 is the primary lever that drops the requirement from the H200 tier to the cheaper H100 tier.
+> Weights only; add KV cache + activation overhead on top. Quantizing owned weights (FP8/INT4) is the main lever to fit cheaper tiers.
 
 ---
 
 ## 4. Instance options
 
-| Instance | GPUs | VRAM (total) | vCPU / RAM | Use when |
-|---|---|---|---|---|
-| `a3-highgpu-8g` | 8× H100 SXM5 80 GB | 640 GB | 208 / 1,872 GB | FP8 or INT4 quantized weights |
-| `a3-ultragpu-8g` | 8× H200 141 GB | 1,128 GB | 224 / 2,952 GB | BF16 full precision |
+| Instance | GPUs | VRAM (total) | vCPU / host RAM | Interconnect | Use when |
+|---|---|---|---|---|---|
+| `g4-standard-384` | 8× RTX PRO 6000 96 GB | 768 GB | 384 / 1,440 GB | **PCIe (no NVLink)** | Cheapest; FP8/INT4 only; throughput-validate |
+| `a3-highgpu-8g` | 8× H100 SXM5 80 GB | 640 GB | 208 / 1,871 GB | NVLink | FP8/INT4; best spot rate |
+| `a3-ultragpu-8g` | 8× H200 141 GB | 1,128 GB | 224 / 2,952 GB | NVLink | **Default** — BF16 or quantized |
+| `a4-highgpu-8g` | 8× B200 | 1,440 GB | 224 / 3,968 GB | NVLink | BF16; DWS/spot only (no on-demand listing) |
 
 Serve with vLLM / SGLang / TGI using tensor parallelism `TP=8`, exposed as an OpenAI-compatible endpoint for the PyRIT `OpenAIChatTarget` attacker role.
 
 **Two hosting surfaces:**
-1. **GCE VM (direct)** — most control, lowest cost. Run the serving stack yourself on the A3 instance.
-2. **Vertex AI custom serving** — managed endpoint via custom container on the same A3 machines. Easier ops, Vertex markup, plus the compliance consideration in §6.
+1. **GCE VM (direct)** — most control, lowest cost. Run the serving stack yourself on the instance.
+2. **Vertex AI custom serving** — managed endpoint via custom container on the same machines. Easier ops, Vertex markup, plus the compliance consideration in §6.
 
 ---
 
-## 5. Cost
+## 5. Cost (Google price sheet, us-central1, full node)
 
-### Full 8-GPU node, on-demand (us-central1)
+### Hourly, all pricing modes
 
-| Instance | Per-GPU/hr | Full node/hr | 24×7 month (~730 hr) |
-|---|---|---|---|
-| `a3-highgpu-8g` (8×H100) | ~$10.98 | ~$87.84 | ~$64,100 |
-| `a3-ultragpu-8g` (8×H200) | — | ~$87–98 | ~$63,300 |
+| Instance | On-demand/hr | Spot/hr | 1-yr CUD/hr | 3-yr CUD/hr | DWS flex-start/hr |
+|---|---|---|---|---|---|
+| `g4-standard-384` (8×RTX PRO 6000) | $36.00 | $7.39 | $24.84 | $15.84 | $18.00 |
+| `a3-highgpu-8g` (8×H100) | $88.49 | $37.92 | $61.38 | $38.86 | $38.32 |
+| `a3-ultragpu-8g` (8×H200) | $84.81 | $42.25 | $58.47 | $37.21 | $42.40 |
+| `a4-highgpu-8g` (8×B200) | N/A | $34.24 | $88.93 | $56.71 | $64.44 |
 
-### Discount tiers (H100 node, indicative)
+> CUD discounts on A3 are deeper than generic GCP tiers: ~31% (1-yr) and ~56% (3-yr) off on-demand. Spot offers ~50–57% off but is preemptible. DWS flex-start gives time-boxed, queued blocks — well-suited to batch scan runs.
 
-| Tier | Approx. discount | Effective node/hr | 24×7 month |
-|---|---|---|---|
-| On-demand | — | ~$87.84 | ~$64,100 |
-| 1-yr CUD | ~20% | ~$70.27 | ~$51,300 |
-| 3-yr CUD | ~46% | ~$47.43 | ~$34,600 |
-| Spot / preemptible | ~$3.69/GPU/hr | ~$29.52 | ~$21,550 |
+### 24×7 monthly (~730 hr) — for reference only; not recommended
+
+| Instance | On-demand | Spot | 1-yr CUD | 3-yr CUD |
+|---|---|---|---|---|
+| `a3-ultragpu-8g` (H200) | ~$61,900 | ~$30,840 | ~$42,680 | ~$27,160 |
+| `a3-highgpu-8g` (H100) | ~$64,600 | ~$27,680 | ~$44,810 | ~$28,370 |
+| `g4-standard-384` (RTX PRO 6000) | ~$26,280 | ~$5,395 | ~$18,130 | ~$11,560 |
 
 ### Ephemeral / per-scan economics (recommended)
 
-Red-teaming does **not** require a persistent endpoint. Billing the node only during actual scan hours:
+Red-teaming does not require a persistent endpoint. Billed only during actual scan hours, on `a3-ultragpu-8g` (H200) at $84.81/hr on-demand:
 
-| Scan hours/month | On-demand | Spot |
+| Scan hours/month | On-demand | Spot ($42.25/hr) |
 |---|---|---|
-| 20 hr | ~$1,760 | ~$590 |
-| 40 hr | ~$3,510 | ~$1,180 |
-| 80 hr | ~$7,030 | ~$2,360 |
+| 20 hr | ~$1,696 | ~$845 |
+| 40 hr | ~$3,392 | ~$1,690 |
+| 80 hr | ~$6,785 | ~$3,380 |
 
-Spot/preemptible is well-suited to batch attack runs (interruption-tolerant); avoid it for a long-lived serving endpoint. Costs above are compute only — exclude persistent disk, egress, and managed-service (Vertex) charges.
+Costs above are compute only — exclude persistent disk, egress, premium OS images, and managed-service (Vertex) charges.
 
 ---
 
@@ -110,4 +117,4 @@ The PUP was refreshed Jan 2026, adding exceptions for certain educational/artist
 
 ---
 
-*Generated 2026-06-15. Re-verify all pricing against the GCP pricing calculator before budgeting.*
+*Generated 2026-06-15. Pricing grounded in Google's official accelerator-optimized price sheet (us-central1). Re-verify against the GCP pricing calculator before budgeting.*
