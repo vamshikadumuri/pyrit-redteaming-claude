@@ -117,4 +117,11 @@ The PUP was refreshed Jan 2026, adding exceptions for certain educational/artist
 
 ---
 
+## 8. References
+
+- [Accelerator-optimized VM pricing](https://cloud.google.com/products/compute/pricing/accelerator-optimized) — Google Cloud's official price sheet (H100 / H200 / B200 / RTX PRO 6000; on-demand, spot, 1-yr & 3-yr CUD, DWS flex-start). Source for all §5 figures, region `us-central1`, retrieved 2026-06-15.
+- [GCP pricing calculator](https://cloud.google.com/products/calculator) — re-verify current rates before committing budget.
+
+---
+
 *Generated 2026-06-15. Pricing grounded in Google's official accelerator-optimized price sheet (us-central1). Re-verify against the GCP pricing calculator before budgeting.*
