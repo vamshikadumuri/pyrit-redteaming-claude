@@ -29,6 +29,7 @@ JUDGE_LLM_API_KEY=sk-...
 
 ### Run (Docker)
 
+**Linux / macOS:**
 ```bash
 docker run -d \
   --name pyrit-redteam \
@@ -38,10 +39,8 @@ docker run -d \
   -e APP_DB=/workspace/app.sqlite3 \
   --entrypoint bash \
   ghcr.io/vamshikadumuri/pyrit:0.14.0-v1 \
-  /workspace/scripts/docker_serve.sh
+  -c "uv pip install -q aiosqlite python-multipart && cd /workspace && PYTHONPATH=/workspace /opt/venv/bin/python scripts/serve.py"
 ```
-
-Then open **http://localhost:8006** in your browser.
 
 **Windows (PowerShell):**
 ```powershell
@@ -53,8 +52,10 @@ docker run -d `
   -e APP_DB=/workspace/app.sqlite3 `
   --entrypoint bash `
   ghcr.io/vamshikadumuri/pyrit:0.14.0-v1 `
-  /workspace/scripts/docker_serve.sh
+  -c "uv pip install -q aiosqlite python-multipart && cd /workspace && PYTHONPATH=/workspace /opt/venv/bin/python scripts/serve.py"
 ```
+
+Then open **http://localhost:8006** in your browser.
 
 **Stop:**
 ```bash
@@ -157,7 +158,7 @@ docker exec pyrit-redteam bash -c \
 
 ## How Docker Startup Works
 
-The image `ghcr.io/vamshikadumuri/pyrit:0.14.0-v1` provides PyRIT 0.14.0 in `/opt/venv`. Our code is mounted from the host at `/workspace`. `scripts/docker_serve.sh` installs the two missing dependencies (`aiosqlite`, `python-multipart`) via `uv` at startup, then launches the web server.
+The image `ghcr.io/vamshikadumuri/pyrit:0.14.0-v1` provides PyRIT 0.14.0 in `/opt/venv`. Our code is mounted from the host at `/workspace`. The `-c` command installs the two missing dependencies (`aiosqlite`, `python-multipart`) via the image's built-in `uv` package manager at startup, then launches the web server.
 
 No image rebuild is needed — changes to your local code are live immediately via the volume mount.
 
