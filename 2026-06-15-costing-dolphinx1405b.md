@@ -4,7 +4,7 @@
 
 **Source of weights:** On-prem MLflow registry → one-time push to GCP (no runtime internet egress required at serve time).
 
-**Pricing provenance:** All dollar figures below are taken from Google's official [Accelerator-optimized VM pricing](https://cloud.google.com/products/compute/pricing/accelerator-optimized) price sheet, region `us-central1`, retrieved **2026-06-15**. GPU rates change; re-verify in the [pricing calculator](https://cloud.google.com/products/calculator) before committing budget.
+**Pricing provenance:** All dollar figures are taken from Google's official [Accelerator-optimized VM pricing](https://cloud.google.com/products/compute/pricing/accelerator-optimized) price sheet (Compute Engine), region `us-central1`, retrieved **2026-06-15**. GPU specs (VRAM, accelerator names, provisioning constraints) are from the [GPU machine types doc](https://docs.cloud.google.com/compute/docs/accelerator-optimized-machines). "Cloud GPUs" ([cloud.google.com/gpu](https://cloud.google.com/gpu)) is Google's product name for these GPUs; they are billed as Compute Engine machine types. Hourly rates are Google's published figures; **monthly and per-scan totals are compute-only arithmetic (rate × hours), exclusive of disk, egress, and OS license** — the GCP pricing calculator will run higher once those are added. Re-verify in the [pricing calculator](https://cloud.google.com/products/calculator) before committing budget.
 
 ---
 
@@ -42,6 +42,27 @@ No multi-GPU, no NVLink tensor parallelism. The 405B model's minimum footprint (
 | INT4 / AWQ | ~205–230 GB | ✅ | ✅ | ✅ | ✅ |
 
 > Weights only; add KV cache + activation overhead on top. Quantizing owned weights (FP8/INT4) is the main lever to fit cheaper tiers.
+
+### How to read VRAM (and what NOT to trust)
+
+**The GCP Pricing Calculator does NOT show GPU VRAM.** Its machine-type dropdown shows GPU *count* and *host system RAM* only — e.g. `a3-highgpu-4g` lists "RAM: 936 GiB" and `a3-highgpu-8g` lists "RAM: 1872 GiB". **That is DDR host memory, not GPU memory.** The model loads into GPU HBM, so host RAM is irrelevant to whether the model fits. Do not size the deployment off the calculator's RAM figure.
+
+**Where to see actual VRAM:** Google's GPU machine-types doc — [`docs.cloud.google.com/compute/docs/accelerator-optimized-machines`](https://docs.cloud.google.com/compute/docs/accelerator-optimized-machines) (also `/compute/docs/gpus`). It is the only Google source with a per-machine-type "GPU memory" column.
+
+**Reading VRAM from the machine-type name:** the accelerator name encodes GPU model + per-GPU memory, and total VRAM = per-GPU memory × GPU count.
+
+| Machine type | GPU (accelerator name) | Per-GPU VRAM | × count | **Total VRAM** | Host RAM (calculator) |
+|---|---|---|---|---|---|
+| `a3-highgpu-4g` | `nvidia-h100-80gb` | 80 GB | × 4 | **320 GB** | 936 GiB |
+| `a3-highgpu-8g` | `nvidia-h100-80gb` | 80 GB | × 8 | **640 GB** | 1,872 GiB |
+| `a3-megagpu-8g` | `nvidia-h100-mega-80gb` | 80 GB | × 8 | **640 GB** | 1,872 GiB |
+| `a3-ultragpu-8g` | `nvidia-h200-141gb` | 141 GB | × 8 | **1,128 GB** | 2,952 GiB |
+
+> **`a3-highgpu-4g` (320 GB) is too small for this model** — it fits INT4 only (~205 GB), with little KV-cache headroom. Do not select it for a 405B serve.
+
+**Provisioning constraints (same doc):**
+- A3 machine types with **fewer than 8 GPUs** (`-1g`/`-2g`/`-4g`) can only be created as **Spot or Flex-start** VMs — no on-demand.
+- **A3 Ultra** (`a3-ultragpu-8g`, H200) requires a **reservation, Spot, Flex-start, or resize request** — not plain on-demand.
 
 ---
 
@@ -120,6 +141,7 @@ The PUP was refreshed Jan 2026, adding exceptions for certain educational/artist
 ## 8. References
 
 - [Accelerator-optimized VM pricing](https://cloud.google.com/products/compute/pricing/accelerator-optimized) — Google Cloud's official price sheet (H100 / H200 / B200 / RTX PRO 6000; on-demand, spot, 1-yr & 3-yr CUD, DWS flex-start). Source for all §5 figures, region `us-central1`, retrieved 2026-06-15.
+- [GPU machine types](https://docs.cloud.google.com/compute/docs/accelerator-optimized-machines) — Google's per-machine-type GPU memory (VRAM), accelerator names, and provisioning constraints. Source for §3 VRAM figures.
 - [GCP pricing calculator](https://cloud.google.com/products/calculator) — re-verify current rates before committing budget.
 
 ---
