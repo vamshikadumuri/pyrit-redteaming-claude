@@ -89,10 +89,16 @@
   {% if ctx.summary.status in ('completed', 'stopped', 'failed') %}
   <div class="mb-4 p-4 bg-gray-800/60 border border-gray-700 rounded-xl flex items-center justify-between">
     <div class="flex items-center gap-3">
+      {% if ctx.summary.status == 'failed' %}
+      <span class="text-red-400 text-xl">✕</span>
+      {% else %}
       <span class="text-green-400 text-xl">✓</span>
+      {% endif %}
       <div>
         <div class="text-white font-semibold text-sm">Run {{ ctx.summary.status }} — ASR: {{ ctx.overall_asr | pct }}</div>
-        <div class="text-gray-400 text-xs mt-0.5">All executions complete</div>
+        <div class="text-gray-400 text-xs mt-0.5">
+          {% if ctx.summary.status == 'failed' %}Run encountered errors{% else %}All executions complete{% endif %}
+        </div>
       </div>
     </div>
     <div class="flex items-center gap-2">
