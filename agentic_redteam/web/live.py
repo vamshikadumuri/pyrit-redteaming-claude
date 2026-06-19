@@ -31,7 +31,11 @@ def real_llm_factory(request: RunRequest):
         api_key = "none"
 
     async def _llm(system: str, user: str) -> str:
+        import logging as _log
+
         import httpx  # available in the pyrit:0.13.0-v2 container
+
+        _log.getLogger(__name__).info("LLM call: POST %s/chat/completions", endpoint)
 
         payload = {
             "model": model,
