@@ -42,6 +42,7 @@ def test_run_config_extracted_from_request_json():
     assert cfg["n"] == 3
     assert cfg["concurrency"] == 2
     assert cfg["requested_by"] == "tester"
+    assert cfg["policy_text"] == ""
 
 
 def test_run_config_returns_none_for_missing_json():
