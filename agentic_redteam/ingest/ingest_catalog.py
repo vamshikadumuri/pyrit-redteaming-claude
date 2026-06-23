@@ -265,5 +265,5 @@ def write_catalog(xlsx_path, out_dir) -> None:
 if __name__ == "__main__":
     here = Path(__file__).resolve().parents[1]  # agentic_redteam/
     root = here.parent
-    write_catalog(root / "promptfoo_plugins_catalog_1.xlsx", here / "catalog" / "data")
+    write_catalog(root / "promptfoo_plugins_catalog_enriched.xlsx", here / "catalog" / "data")
     print("catalog written to agentic_redteam/catalog/data/")
