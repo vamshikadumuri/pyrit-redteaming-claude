@@ -173,7 +173,7 @@
             {{ f.severity }}
           </span>
           <span class="font-mono text-xs text-gray-200 font-medium">{{ f.plugin_id }}</span>
-          <span class="text-gray-500 text-xs">via {{ f.strategy_id }}</span>
+          <span class="text-gray-500 text-xs">via {{ f.attack_class_name }}</span>
           {% if f.fidelity_label %}
           <span class="text-gray-600 text-xs ml-auto mr-2 flex-shrink-0">{{ f.fidelity_label }}</span>
           {% endif %}
@@ -295,7 +295,7 @@
             <tr class="hover:bg-gray-800/30 transition-colors group cursor-pointer"
                 x-data="{ open: false }" @click="open = !open">
               <td class="px-4 py-3 font-mono text-xs text-gray-300 align-top">{{ ex.plugin_id }}</td>
-              <td class="px-4 py-3 text-xs text-gray-500 align-top">{{ ex.strategy_id }}</td>
+              <td class="px-4 py-3 text-xs text-gray-500 align-top">{{ ex.attack_class_name }}</td>
               <td class="px-4 py-3 text-xs text-gray-400 align-top">
                 <div :class="open ? '' : 'line-clamp-2'">{{ ex.objective }}</div>
                 {% if ex.response_text %}
