@@ -73,11 +73,12 @@ def _model(form, prefix: str, *, optional: bool = False) -> ModelConfig | None:
     if optional and not endpoint:
         return None
     temp_str = form.get(f"{prefix}_temperature", "")
+    default_temp = 1.0 if prefix == "adversarial" else None
     return ModelConfig(
         endpoint=endpoint,
         model_name=form.get(f"{prefix}_model", ""),
         api_key_env=form.get(f"{prefix}_api_key_env", ""),
-        temperature=float(temp_str) if temp_str else None,
+        temperature=float(temp_str) if temp_str else default_temp,
     )
 
 
