@@ -33,7 +33,7 @@ _SKIP_SUFFIXES = (
     "Printer",
     "SelectionStrategy",
 )
-_SKIP_EXACT = {"ConverterResult", "get_converter_modalities"}
+_SKIP_EXACT = {"ConverterResult"}
 
 # TAPAttack is an alias — keep only TreeOfAttacksWithPruningAttack
 _ATTACK_ALIASES = {"TAPAttack"}
@@ -370,10 +370,16 @@ def build_converters() -> list[dict]:
         requirement = _converter_requirement(name, cls)
         category = CATEGORY_MAP.get(name, "text_transform")
 
-        non_runnable_requirements = {"multimodal", "audio", "file", "azure_service"}
+        _requirement_labels = {
+            "multimodal": "multimodal infrastructure",
+            "audio": "audio infrastructure",
+            "file": "file infrastructure",
+            "azure_service": "Azure Speech service",
+        }
+        non_runnable_requirements = set(_requirement_labels)
         if requirement in non_runnable_requirements:
             runnable = False
-            runnable_reason = f"Requires {requirement} infrastructure"
+            runnable_reason = f"Requires {_requirement_labels[requirement]}"
         else:
             runnable = True
             runnable_reason = ""

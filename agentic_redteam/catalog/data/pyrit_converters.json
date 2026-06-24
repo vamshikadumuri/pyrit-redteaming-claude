@@ -125,7 +125,7 @@
     "category": "azure",
     "requirement": "azure_service",
     "runnable": false,
-    "runnable_reason": "Requires azure_service infrastructure"
+    "runnable_reason": "Requires Azure Speech service"
   },
   {
     "class_name": "AzureSpeechTextToAudioConverter",
@@ -133,7 +133,7 @@
     "category": "azure",
     "requirement": "azure_service",
     "runnable": false,
-    "runnable_reason": "Requires azure_service infrastructure"
+    "runnable_reason": "Requires Azure Speech service"
   },
   {
     "class_name": "Base2048Converter",

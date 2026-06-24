@@ -2,8 +2,8 @@
   {
     "class_name": "BargeInAttack",
     "display_name": "Barge-In",
-    "turn_type": "single_turn",
-    "needs": ["objective_scorer"],
+    "turn_type": "multi_turn",
+    "needs": ["adversarial_chat", "objective_scorer"],
     "params": {},
     "runnable": true,
     "runnable_reason": ""
