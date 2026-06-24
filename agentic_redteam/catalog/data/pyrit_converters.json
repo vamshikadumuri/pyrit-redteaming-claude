@@ -1,0 +1,658 @@
+[
+  {
+    "class_name": "AddImageTextConverter",
+    "display_name": "Add Text to Image",
+    "category": "multimodal",
+    "requirement": "multimodal",
+    "runnable": false,
+    "runnable_reason": "Requires multimodal infrastructure"
+  },
+  {
+    "class_name": "AddImageVideoConverter",
+    "display_name": "Add Image to Video",
+    "category": "multimodal",
+    "requirement": "multimodal",
+    "runnable": false,
+    "runnable_reason": "Requires multimodal infrastructure"
+  },
+  {
+    "class_name": "AddTextImageConverter",
+    "display_name": "Text to Image",
+    "category": "multimodal",
+    "requirement": "multimodal",
+    "runnable": false,
+    "runnable_reason": "Requires multimodal infrastructure"
+  },
+  {
+    "class_name": "AnsiAttackConverter",
+    "display_name": "ANSI Escape Attack",
+    "category": "text_transform",
+    "requirement": "offline",
+    "runnable": true,
+    "runnable_reason": ""
+  },
+  {
+    "class_name": "ArabicPresentationFormConverter",
+    "display_name": "Arabic Presentation Form",
+    "category": "text_transform",
+    "requirement": "offline",
+    "runnable": true,
+    "runnable_reason": ""
+  },
+  {
+    "class_name": "ArabiziConverter",
+    "display_name": "Arabizi (Arab Romanization)",
+    "category": "text_transform",
+    "requirement": "offline",
+    "runnable": true,
+    "runnable_reason": ""
+  },
+  {
+    "class_name": "AsciiArtConverter",
+    "display_name": "ASCII Art",
+    "category": "encoding",
+    "requirement": "offline",
+    "runnable": true,
+    "runnable_reason": ""
+  },
+  {
+    "class_name": "AsciiSmugglerConverter",
+    "display_name": "ASCII Smuggler",
+    "category": "smuggling",
+    "requirement": "offline",
+    "runnable": true,
+    "runnable_reason": ""
+  },
+  {
+    "class_name": "AskToDecodeConverter",
+    "display_name": "Ask to Decode",
+    "category": "llm_rewrite",
+    "requirement": "llm_target",
+    "runnable": true,
+    "runnable_reason": ""
+  },
+  {
+    "class_name": "AtbashConverter",
+    "display_name": "Atbash Cipher",
+    "category": "encoding",
+    "requirement": "offline",
+    "runnable": true,
+    "runnable_reason": ""
+  },
+  {
+    "class_name": "AudioEchoConverter",
+    "display_name": "Audio Echo",
+    "category": "audio",
+    "requirement": "audio",
+    "runnable": false,
+    "runnable_reason": "Requires audio infrastructure"
+  },
+  {
+    "class_name": "AudioFrequencyConverter",
+    "display_name": "Audio Frequency Shift",
+    "category": "audio",
+    "requirement": "audio",
+    "runnable": false,
+    "runnable_reason": "Requires audio infrastructure"
+  },
+  {
+    "class_name": "AudioSpeedConverter",
+    "display_name": "Audio Speed",
+    "category": "audio",
+    "requirement": "audio",
+    "runnable": false,
+    "runnable_reason": "Requires audio infrastructure"
+  },
+  {
+    "class_name": "AudioVolumeConverter",
+    "display_name": "Audio Volume",
+    "category": "audio",
+    "requirement": "audio",
+    "runnable": false,
+    "runnable_reason": "Requires audio infrastructure"
+  },
+  {
+    "class_name": "AudioWhiteNoiseConverter",
+    "display_name": "Audio White Noise",
+    "category": "audio",
+    "requirement": "audio",
+    "runnable": false,
+    "runnable_reason": "Requires audio infrastructure"
+  },
+  {
+    "class_name": "AzureSpeechAudioToTextConverter",
+    "display_name": "Azure Speech Audio-to-Text",
+    "category": "azure",
+    "requirement": "azure_service",
+    "runnable": false,
+    "runnable_reason": "Requires azure_service infrastructure"
+  },
+  {
+    "class_name": "AzureSpeechTextToAudioConverter",
+    "display_name": "Azure Speech Text-to-Audio",
+    "category": "azure",
+    "requirement": "azure_service",
+    "runnable": false,
+    "runnable_reason": "Requires azure_service infrastructure"
+  },
+  {
+    "class_name": "Base2048Converter",
+    "display_name": "Base2048",
+    "category": "encoding",
+    "requirement": "offline",
+    "runnable": true,
+    "runnable_reason": ""
+  },
+  {
+    "class_name": "Base64Converter",
+    "display_name": "Base64",
+    "category": "encoding",
+    "requirement": "offline",
+    "runnable": true,
+    "runnable_reason": ""
+  },
+  {
+    "class_name": "BidiConverter",
+    "display_name": "Bidirectional Override",
+    "category": "text_transform",
+    "requirement": "offline",
+    "runnable": true,
+    "runnable_reason": ""
+  },
+  {
+    "class_name": "BinAsciiConverter",
+    "display_name": "Hex (BinAscii)",
+    "category": "encoding",
+    "requirement": "offline",
+    "runnable": true,
+    "runnable_reason": ""
+  },
+  {
+    "class_name": "BinaryConverter",
+    "display_name": "Binary",
+    "category": "encoding",
+    "requirement": "offline",
+    "runnable": true,
+    "runnable_reason": ""
+  },
+  {
+    "class_name": "BrailleConverter",
+    "display_name": "Braille",
+    "category": "encoding",
+    "requirement": "offline",
+    "runnable": true,
+    "runnable_reason": ""
+  },
+  {
+    "class_name": "CaesarConverter",
+    "display_name": "Caesar Cipher",
+    "category": "encoding",
+    "requirement": "offline",
+    "runnable": true,
+    "runnable_reason": ""
+  },
+  {
+    "class_name": "CharSwapConverter",
+    "display_name": "Character Swap",
+    "category": "text_transform",
+    "requirement": "offline",
+    "runnable": true,
+    "runnable_reason": ""
+  },
+  {
+    "class_name": "CharacterSpaceConverter",
+    "display_name": "Character Space",
+    "category": "text_transform",
+    "requirement": "offline",
+    "runnable": true,
+    "runnable_reason": ""
+  },
+  {
+    "class_name": "CodeChameleonConverter",
+    "display_name": "Code Chameleon",
+    "category": "text_transform",
+    "requirement": "offline",
+    "runnable": true,
+    "runnable_reason": ""
+  },
+  {
+    "class_name": "ColloquialWordswapConverter",
+    "display_name": "Colloquial Word Swap",
+    "category": "llm_rewrite",
+    "requirement": "llm_target",
+    "runnable": true,
+    "runnable_reason": ""
+  },
+  {
+    "class_name": "DenylistConverter",
+    "display_name": "Denylist Filter",
+    "category": "text_transform",
+    "requirement": "offline",
+    "runnable": true,
+    "runnable_reason": ""
+  },
+  {
+    "class_name": "DiacriticConverter",
+    "display_name": "Diacritics",
+    "category": "text_transform",
+    "requirement": "offline",
+    "runnable": true,
+    "runnable_reason": ""
+  },
+  {
+    "class_name": "EcojiConverter",
+    "display_name": "Ecoji",
+    "category": "encoding",
+    "requirement": "offline",
+    "runnable": true,
+    "runnable_reason": ""
+  },
+  {
+    "class_name": "EmojiConverter",
+    "display_name": "Emoji",
+    "category": "encoding",
+    "requirement": "offline",
+    "runnable": true,
+    "runnable_reason": ""
+  },
+  {
+    "class_name": "FirstLetterConverter",
+    "display_name": "First Letter Only",
+    "category": "text_transform",
+    "requirement": "offline",
+    "runnable": true,
+    "runnable_reason": ""
+  },
+  {
+    "class_name": "FlipConverter",
+    "display_name": "Text Flip",
+    "category": "text_transform",
+    "requirement": "offline",
+    "runnable": true,
+    "runnable_reason": ""
+  },
+  {
+    "class_name": "ImageColorSaturationConverter",
+    "display_name": "Image Color Saturation",
+    "category": "multimodal",
+    "requirement": "multimodal",
+    "runnable": false,
+    "runnable_reason": "Requires multimodal infrastructure"
+  },
+  {
+    "class_name": "ImageCompressionConverter",
+    "display_name": "Image Compression",
+    "category": "multimodal",
+    "requirement": "multimodal",
+    "runnable": false,
+    "runnable_reason": "Requires multimodal infrastructure"
+  },
+  {
+    "class_name": "ImageOverlayConverter",
+    "display_name": "Image Overlay",
+    "category": "multimodal",
+    "requirement": "multimodal",
+    "runnable": false,
+    "runnable_reason": "Requires multimodal infrastructure"
+  },
+  {
+    "class_name": "ImagePromptStyleConverter",
+    "display_name": "Image Prompt Style",
+    "category": "multimodal",
+    "requirement": "multimodal",
+    "runnable": false,
+    "runnable_reason": "Requires multimodal infrastructure"
+  },
+  {
+    "class_name": "ImageResizingConverter",
+    "display_name": "Image Resize",
+    "category": "multimodal",
+    "requirement": "multimodal",
+    "runnable": false,
+    "runnable_reason": "Requires multimodal infrastructure"
+  },
+  {
+    "class_name": "ImageRotationConverter",
+    "display_name": "Image Rotation",
+    "category": "multimodal",
+    "requirement": "multimodal",
+    "runnable": false,
+    "runnable_reason": "Requires multimodal infrastructure"
+  },
+  {
+    "class_name": "InsertPunctuationConverter",
+    "display_name": "Insert Punctuation",
+    "category": "text_transform",
+    "requirement": "offline",
+    "runnable": true,
+    "runnable_reason": ""
+  },
+  {
+    "class_name": "JsonStringConverter",
+    "display_name": "JSON String Escape",
+    "category": "text_transform",
+    "requirement": "offline",
+    "runnable": true,
+    "runnable_reason": ""
+  },
+  {
+    "class_name": "LLMGenericTextConverter",
+    "display_name": "LLM Generic Rewrite",
+    "category": "llm_rewrite",
+    "requirement": "llm_target",
+    "runnable": true,
+    "runnable_reason": ""
+  },
+  {
+    "class_name": "LeetspeakConverter",
+    "display_name": "Leetspeak",
+    "category": "encoding",
+    "requirement": "offline",
+    "runnable": true,
+    "runnable_reason": ""
+  },
+  {
+    "class_name": "MaliciousQuestionGeneratorConverter",
+    "display_name": "Malicious Question Generator",
+    "category": "llm_rewrite",
+    "requirement": "llm_target",
+    "runnable": true,
+    "runnable_reason": ""
+  },
+  {
+    "class_name": "MathObfuscationConverter",
+    "display_name": "Math Obfuscation",
+    "category": "text_transform",
+    "requirement": "offline",
+    "runnable": true,
+    "runnable_reason": ""
+  },
+  {
+    "class_name": "MathPromptConverter",
+    "display_name": "Math Prompt",
+    "category": "text_transform",
+    "requirement": "offline",
+    "runnable": true,
+    "runnable_reason": ""
+  },
+  {
+    "class_name": "MorseConverter",
+    "display_name": "Morse Code",
+    "category": "encoding",
+    "requirement": "offline",
+    "runnable": true,
+    "runnable_reason": ""
+  },
+  {
+    "class_name": "NatoConverter",
+    "display_name": "NATO Phonetic",
+    "category": "encoding",
+    "requirement": "offline",
+    "runnable": true,
+    "runnable_reason": ""
+  },
+  {
+    "class_name": "NegationTrapConverter",
+    "display_name": "Negation Trap",
+    "category": "llm_rewrite",
+    "requirement": "llm_target",
+    "runnable": true,
+    "runnable_reason": ""
+  },
+  {
+    "class_name": "NoiseConverter",
+    "display_name": "Noise Injection",
+    "category": "text_transform",
+    "requirement": "offline",
+    "runnable": true,
+    "runnable_reason": ""
+  },
+  {
+    "class_name": "PDFConverter",
+    "display_name": "PDF",
+    "category": "file",
+    "requirement": "file",
+    "runnable": false,
+    "runnable_reason": "Requires file infrastructure"
+  },
+  {
+    "class_name": "PersuasionConverter",
+    "display_name": "Persuasion",
+    "category": "llm_rewrite",
+    "requirement": "llm_target",
+    "runnable": true,
+    "runnable_reason": ""
+  },
+  {
+    "class_name": "QRCodeConverter",
+    "display_name": "QR Code",
+    "category": "multimodal",
+    "requirement": "multimodal",
+    "runnable": false,
+    "runnable_reason": "Requires multimodal infrastructure"
+  },
+  {
+    "class_name": "ROT13Converter",
+    "display_name": "ROT13",
+    "category": "encoding",
+    "requirement": "offline",
+    "runnable": true,
+    "runnable_reason": ""
+  },
+  {
+    "class_name": "RandomCapitalLettersConverter",
+    "display_name": "Random Capitals",
+    "category": "text_transform",
+    "requirement": "offline",
+    "runnable": true,
+    "runnable_reason": ""
+  },
+  {
+    "class_name": "RandomTranslationConverter",
+    "display_name": "Random Translation",
+    "category": "llm_rewrite",
+    "requirement": "llm_target",
+    "runnable": true,
+    "runnable_reason": ""
+  },
+  {
+    "class_name": "RepeatTokenConverter",
+    "display_name": "Repeat Token",
+    "category": "text_transform",
+    "requirement": "offline",
+    "runnable": true,
+    "runnable_reason": ""
+  },
+  {
+    "class_name": "ScientificTranslationConverter",
+    "display_name": "Scientific Translation",
+    "category": "llm_rewrite",
+    "requirement": "llm_target",
+    "runnable": true,
+    "runnable_reason": ""
+  },
+  {
+    "class_name": "SearchReplaceConverter",
+    "display_name": "Search and Replace",
+    "category": "text_transform",
+    "requirement": "offline",
+    "runnable": true,
+    "runnable_reason": ""
+  },
+  {
+    "class_name": "SelectiveTextConverter",
+    "display_name": "Selective Text",
+    "category": "text_transform",
+    "requirement": "offline",
+    "runnable": true,
+    "runnable_reason": ""
+  },
+  {
+    "class_name": "SneakyBitsSmugglerConverter",
+    "display_name": "Sneaky Bits Smuggler",
+    "category": "smuggling",
+    "requirement": "offline",
+    "runnable": true,
+    "runnable_reason": ""
+  },
+  {
+    "class_name": "StringJoinConverter",
+    "display_name": "String Join",
+    "category": "text_transform",
+    "requirement": "offline",
+    "runnable": true,
+    "runnable_reason": ""
+  },
+  {
+    "class_name": "SuffixAppendConverter",
+    "display_name": "Suffix Append",
+    "category": "text_transform",
+    "requirement": "offline",
+    "runnable": true,
+    "runnable_reason": ""
+  },
+  {
+    "class_name": "SuperscriptConverter",
+    "display_name": "Superscript",
+    "category": "text_transform",
+    "requirement": "offline",
+    "runnable": true,
+    "runnable_reason": ""
+  },
+  {
+    "class_name": "TatweelConverter",
+    "display_name": "Tatweel (Arabic)",
+    "category": "text_transform",
+    "requirement": "offline",
+    "runnable": true,
+    "runnable_reason": ""
+  },
+  {
+    "class_name": "TemplateSegmentConverter",
+    "display_name": "Template Segment",
+    "category": "text_transform",
+    "requirement": "offline",
+    "runnable": true,
+    "runnable_reason": ""
+  },
+  {
+    "class_name": "TenseConverter",
+    "display_name": "Tense Change",
+    "category": "llm_rewrite",
+    "requirement": "llm_target",
+    "runnable": true,
+    "runnable_reason": ""
+  },
+  {
+    "class_name": "TextJailbreakConverter",
+    "display_name": "Text Jailbreak Template",
+    "category": "text_transform",
+    "requirement": "offline",
+    "runnable": true,
+    "runnable_reason": ""
+  },
+  {
+    "class_name": "ToneConverter",
+    "display_name": "Tone Change",
+    "category": "llm_rewrite",
+    "requirement": "llm_target",
+    "runnable": true,
+    "runnable_reason": ""
+  },
+  {
+    "class_name": "ToxicSentenceGeneratorConverter",
+    "display_name": "Toxic Sentence Generator",
+    "category": "llm_rewrite",
+    "requirement": "llm_target",
+    "runnable": true,
+    "runnable_reason": ""
+  },
+  {
+    "class_name": "TranslationConverter",
+    "display_name": "Translation",
+    "category": "llm_rewrite",
+    "requirement": "llm_target",
+    "runnable": true,
+    "runnable_reason": ""
+  },
+  {
+    "class_name": "TransparencyAttackConverter",
+    "display_name": "Transparency Attack (Image)",
+    "category": "multimodal",
+    "requirement": "multimodal",
+    "runnable": false,
+    "runnable_reason": "Requires multimodal infrastructure"
+  },
+  {
+    "class_name": "UnicodeConfusableConverter",
+    "display_name": "Unicode Confusables",
+    "category": "text_transform",
+    "requirement": "offline",
+    "runnable": true,
+    "runnable_reason": ""
+  },
+  {
+    "class_name": "UnicodeReplacementConverter",
+    "display_name": "Unicode Replacement",
+    "category": "text_transform",
+    "requirement": "offline",
+    "runnable": true,
+    "runnable_reason": ""
+  },
+  {
+    "class_name": "UnicodeSubstitutionConverter",
+    "display_name": "Unicode Substitution",
+    "category": "text_transform",
+    "requirement": "offline",
+    "runnable": true,
+    "runnable_reason": ""
+  },
+  {
+    "class_name": "UrlConverter",
+    "display_name": "URL Encoding",
+    "category": "encoding",
+    "requirement": "offline",
+    "runnable": true,
+    "runnable_reason": ""
+  },
+  {
+    "class_name": "VariationConverter",
+    "display_name": "Variation",
+    "category": "llm_rewrite",
+    "requirement": "llm_target",
+    "runnable": true,
+    "runnable_reason": ""
+  },
+  {
+    "class_name": "VariationSelectorSmugglerConverter",
+    "display_name": "Variation Selector Smuggler",
+    "category": "smuggling",
+    "requirement": "offline",
+    "runnable": true,
+    "runnable_reason": ""
+  },
+  {
+    "class_name": "WordDocConverter",
+    "display_name": "Word Document",
+    "category": "file",
+    "requirement": "file",
+    "runnable": false,
+    "runnable_reason": "Requires file infrastructure"
+  },
+  {
+    "class_name": "ZalgoConverter",
+    "display_name": "Zalgo Text",
+    "category": "text_transform",
+    "requirement": "offline",
+    "runnable": true,
+    "runnable_reason": ""
+  },
+  {
+    "class_name": "ZeroWidthConverter",
+    "display_name": "Zero-Width Characters",
+    "category": "text_transform",
+    "requirement": "offline",
+    "runnable": true,
+    "runnable_reason": ""
+  }
+]

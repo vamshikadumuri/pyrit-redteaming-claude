@@ -1,0 +1,128 @@
+[
+  {
+    "class_name": "BargeInAttack",
+    "display_name": "Barge-In",
+    "turn_type": "single_turn",
+    "needs": ["objective_scorer"],
+    "params": {},
+    "runnable": true,
+    "runnable_reason": ""
+  },
+  {
+    "class_name": "ChunkedRequestAttack",
+    "display_name": "Chunked Request",
+    "turn_type": "single_turn",
+    "needs": ["objective_scorer"],
+    "params": {},
+    "runnable": true,
+    "runnable_reason": ""
+  },
+  {
+    "class_name": "ContextComplianceAttack",
+    "display_name": "Context Compliance",
+    "turn_type": "multi_turn",
+    "needs": ["adversarial_chat", "objective_scorer"],
+    "params": {},
+    "runnable": true,
+    "runnable_reason": ""
+  },
+  {
+    "class_name": "CrescendoAttack",
+    "display_name": "Crescendo",
+    "turn_type": "multi_turn",
+    "needs": ["adversarial_chat", "objective_scorer"],
+    "params": {"max_turns": 10, "max_backtracks": 5},
+    "runnable": true,
+    "runnable_reason": ""
+  },
+  {
+    "class_name": "FlipAttack",
+    "display_name": "Flip",
+    "turn_type": "single_turn",
+    "needs": ["objective_scorer"],
+    "params": {},
+    "runnable": true,
+    "runnable_reason": ""
+  },
+  {
+    "class_name": "ManyShotJailbreakAttack",
+    "display_name": "Many-Shot Jailbreak",
+    "turn_type": "single_turn",
+    "needs": ["objective_scorer"],
+    "params": {},
+    "runnable": true,
+    "runnable_reason": ""
+  },
+  {
+    "class_name": "MultiPromptSendingAttack",
+    "display_name": "Multi Prompt Sending",
+    "turn_type": "single_turn",
+    "needs": ["objective_scorer"],
+    "params": {},
+    "runnable": true,
+    "runnable_reason": ""
+  },
+  {
+    "class_name": "PAIRAttack",
+    "display_name": "PAIR",
+    "turn_type": "multi_turn",
+    "needs": ["adversarial_chat", "objective_scorer"],
+    "params": {},
+    "runnable": true,
+    "runnable_reason": ""
+  },
+  {
+    "class_name": "PromptSendingAttack",
+    "display_name": "Prompt Sending",
+    "turn_type": "single_turn",
+    "needs": ["objective_scorer"],
+    "params": {},
+    "runnable": true,
+    "runnable_reason": ""
+  },
+  {
+    "class_name": "RedTeamingAttack",
+    "display_name": "Red Teaming",
+    "turn_type": "multi_turn",
+    "needs": ["adversarial_chat", "objective_scorer"],
+    "params": {},
+    "runnable": true,
+    "runnable_reason": ""
+  },
+  {
+    "class_name": "RolePlayAttack",
+    "display_name": "Role Play",
+    "turn_type": "multi_turn",
+    "needs": ["adversarial_chat", "objective_scorer"],
+    "params": {},
+    "runnable": true,
+    "runnable_reason": ""
+  },
+  {
+    "class_name": "SequentialAttack",
+    "display_name": "Sequential",
+    "turn_type": "meta",
+    "needs": [],
+    "params": {},
+    "runnable": false,
+    "runnable_reason": "Orchestration attack — select component attacks instead"
+  },
+  {
+    "class_name": "SkeletonKeyAttack",
+    "display_name": "Skeleton Key",
+    "turn_type": "single_turn",
+    "needs": ["objective_scorer"],
+    "params": {},
+    "runnable": true,
+    "runnable_reason": ""
+  },
+  {
+    "class_name": "TreeOfAttacksWithPruningAttack",
+    "display_name": "Tree of Attacks with Pruning (TAP)",
+    "turn_type": "multi_turn",
+    "needs": ["adversarial_chat", "objective_scorer"],
+    "params": {},
+    "runnable": true,
+    "runnable_reason": ""
+  }
+]
