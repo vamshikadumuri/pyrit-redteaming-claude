@@ -1,5 +1,5 @@
 # agentic_redteam/ingest/ingest_catalog.py
-"""Transform promptfoo_plugins_catalog_1.xlsx -> catalog/data/{plugins,strategies,presets}.json.
+"""Transform promptfoo_plugins_catalog_1.xlsx -> catalog/data/{plugins,presets}.json.
 
 Parsing rules are derived from the actual cell formats in the v0.121.13 catalog.
 Run once; the JSON is committed and read by catalog.loader at runtime."""
@@ -93,70 +93,6 @@ def build_plugins(rows: list[dict]) -> list[dict]:
     return out
 
 
-# -- strategy parsing ---------------------------------------------------------
-def _stype(cell: str) -> str:
-    c = cell.strip().lower()
-    if c.startswith("encoding"):
-        return "encoding"
-    if c.startswith("single-turn"):
-        return "single_turn"
-    if c.startswith("multi-turn"):
-        return "multi_turn"
-    if c.startswith("multimodal"):
-        return "multimodal"
-    return "utility"
-
-
-def _fidelity(cell: str) -> str:
-    c = cell.strip().lower()
-    for prefix, val in (
-        ("clean", "clean"),
-        ("approximate", "approximate"),
-        ("custom", "custom_needed"),
-        ("meta", "meta"),
-        ("n/a", "na"),
-    ):
-        if c.startswith(prefix):
-            return val
-    return "approximate"
-
-
-def _kind(sid: str, stype: str, fidelity: str) -> str:
-    if sid == "retry":
-        return "utility"
-    if stype == "encoding":
-        return "converter"
-    if fidelity == "meta":
-        return "meta"
-    return "attack"
-
-
-def build_strategies(rows: list[dict]) -> list[dict]:
-    out = []
-    for r in rows:
-        sid = r["Promptfoo Strategy ID"].strip()
-        stype = _stype(r["Type"])
-        fid = _fidelity(r["PyRIT Fidelity (how clean?)"])
-        out.append(
-            {
-                "id": sid,
-                "display_name": r.get("Display Name", "").strip() or sid,
-                "type": stype,
-                "kind": _kind(sid, stype, fid),
-                "offline": r["Air-gap (offline?)"].strip().lower().startswith("runs locally"),
-                "pyrit_class": None,
-                "converter_chain": [],
-                "pyrit_equivalent": r.get("PyRIT 0.13.0 Equivalent", "").strip(),
-                "fidelity": fid,
-                "is_default": r.get("DEFAULT?", "").strip().lower() == "yes",
-                "needs": [],
-                "params": {},
-                "description": r.get("Description (Promptfoo)", "").strip(),
-            }
-        )
-    return out
-
-
 # -- preset aggregation (framework-level) -------------------------------------
 _FRAMEWORK_PRESET = {
     "owasp llm top 10": ("owasp_llm", "OWASP LLM Top 10"),
@@ -166,7 +102,6 @@ _FRAMEWORK_PRESET = {
     "nist ai rmf": ("nist_ai_rmf", "NIST AI RMF"),
     "eu ai act": ("eu_ai_act", "EU AI Act"),
 }
-_DEFAULT_STRATEGIES = ["basic", "jailbreak:meta", "jailbreak:composite"]
 _PARENT_PREFIXES = {"harmful", "pii", "bias"}
 
 
@@ -196,9 +131,7 @@ def _dedup(seq):
     return out
 
 
-def build_presets(
-    rows: list[dict], all_plugin_ids: set[str], all_strategy_ids: set[str]
-) -> list[dict]:
+def build_presets(rows: list[dict], all_plugin_ids: set[str]) -> list[dict]:
     acc: dict[str, dict] = {}
 
     def ensure(pid, framework, title):
@@ -208,8 +141,6 @@ def build_presets(
                 "framework": framework,
                 "title": title,
                 "plugins": [],
-                "recommended_strategies": [],
-                "category_index": {},
             }
         return acc[pid]
 
@@ -228,18 +159,12 @@ def build_presets(
         cat_plugins = _expand_plugins(
             _split_list(r["Plugins (as Promptfoo defines)"]), all_plugin_ids
         )
-        strategies = _split_list(r["Promptfoo Recommended Strategies"]) or list(_DEFAULT_STRATEGIES)
-        strategies = [s for s in strategies if s in all_strategy_ids]
 
         a["plugins"].extend(cat_plugins)
-        a["recommended_strategies"].extend(strategies)
-        if cat_id:
-            a["category_index"][cat_id] = cat_plugins
 
     out = []
     for a in acc.values():
         a["plugins"] = _dedup(a["plugins"])
-        a["recommended_strategies"] = _dedup(a["recommended_strategies"])
         out.append(a)
     return out
 
@@ -249,14 +174,12 @@ def write_catalog(xlsx_path, out_dir) -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
 
     plugins = build_plugins(read_sheet(xlsx_path, "Plugins"))
-    strategies = build_strategies(read_sheet(xlsx_path, "Strategy Map"))
     presets = build_presets(
         read_sheet(xlsx_path, "Presets"),
         {p["id"] for p in plugins},
-        {s["id"] for s in strategies},
     )
 
-    for name, data in (("plugins", plugins), ("strategies", strategies), ("presets", presets)):
+    for name, data in (("plugins", plugins), ("presets", presets)):
         (out_dir / f"{name}.json").write_text(
             json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8"
         )
