@@ -32,12 +32,13 @@ class RunRequest(BaseModel):
 
 
 class ExecutionRecord(BaseModel):
-    """One (plugin x strategy x objective) outcome. status: 'succeeded' == attack
+    """One (plugin x attack x objective) outcome. status: 'succeeded' == attack
     worked (VIOLATION) / 'defended' == target held / 'error' == harness failure."""
 
     run_id: str
     plugin_id: str
-    strategy_id: str
+    attack_class_name: str
+    converter_class_names: list[str] = Field(default_factory=list)
     objective_id: str
     objective: str
     status: str
@@ -73,7 +74,8 @@ class ExecutionRecord(BaseModel):
         return cls(
             run_id=plan.run_id,
             plugin_id=plan.plugin.id,
-            strategy_id=plan.strategy_id,
+            attack_class_name=plan.attack.class_name,
+            converter_class_names=[c.class_name for c in plan.converters],
             objective_id=plan.labels["objective_id"],
             objective=plan.objective,
             status=status,

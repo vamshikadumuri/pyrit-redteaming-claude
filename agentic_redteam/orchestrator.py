@@ -102,7 +102,7 @@ class Orchestrator:
                 _log.debug(
                     "Execution done: %s/%s/%s → %s",
                     record.plugin_id,
-                    record.strategy_id,
+                    record.attack_class_name,
                     record.objective_id,
                     record.status,
                 )
@@ -117,7 +117,7 @@ class Orchestrator:
                         completed=summary.completed,
                         total=summary.total,
                         plugin_id=record.plugin_id,
-                        strategy_id=record.strategy_id,
+                        attack_class_name=record.attack_class_name,
                         objective_id=record.objective_id,
                         status=record.status,
                     )

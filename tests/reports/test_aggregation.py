@@ -10,11 +10,11 @@ from agentic_redteam.reports.aggregation import (
 )
 
 
-def _rec(plugin_id, strategy_id, status, *, severity="high", refs=None, oid="o1"):
+def _rec(plugin_id, attack_class_name, status, *, severity="high", refs=None, oid="o1"):
     return ExecutionRecord(
         run_id="r",
         plugin_id=plugin_id,
-        strategy_id=strategy_id,
+        attack_class_name=attack_class_name,
         objective_id=oid,
         objective="obj",
         status=status,
@@ -25,11 +25,20 @@ def _rec(plugin_id, strategy_id, status, *, severity="high", refs=None, oid="o1"
 
 def test_framework_scorecard_rolls_up_by_category_code():
     recs = [
-        _rec("pii:direct", "basic", "succeeded", refs={"owasp_llm": ["LLM06"], "atlas": []}),
         _rec(
-            "pii:direct", "basic", "defended", refs={"owasp_llm": ["LLM06"], "atlas": []}, oid="o2"
+            "pii:direct",
+            "PromptSendingAttack",
+            "succeeded",
+            refs={"owasp_llm": ["LLM06"], "atlas": []},
         ),
-        _rec("bola", "basic", "succeeded", refs={"owasp_api": ["API01"]}, oid="o3"),
+        _rec(
+            "pii:direct",
+            "PromptSendingAttack",
+            "defended",
+            refs={"owasp_llm": ["LLM06"], "atlas": []},
+            oid="o2",
+        ),
+        _rec("bola", "PromptSendingAttack", "succeeded", refs={"owasp_api": ["API01"]}, oid="o3"),
     ]
     sc = framework_scorecard(recs)
     assert sc["owasp_llm"]["LLM06"] == {"total": 2, "succeeded": 1, "asr": 0.5}
@@ -38,49 +47,58 @@ def test_framework_scorecard_rolls_up_by_category_code():
 
 def test_scorecard_excludes_error_records():
     recs = [
-        _rec("pii:direct", "basic", "error", refs={"owasp_llm": ["LLM06"]}),
-        _rec("pii:direct", "basic", "succeeded", refs={"owasp_llm": ["LLM06"]}, oid="o2"),
+        _rec("pii:direct", "PromptSendingAttack", "error", refs={"owasp_llm": ["LLM06"]}),
+        _rec(
+            "pii:direct",
+            "PromptSendingAttack",
+            "succeeded",
+            refs={"owasp_llm": ["LLM06"]},
+            oid="o2",
+        ),
     ]
     assert framework_scorecard(recs)["owasp_llm"]["LLM06"]["total"] == 1
 
 
-def test_asr_heatmap_is_plugin_by_strategy():
+def test_asr_heatmap_is_plugin_by_attack():
     recs = [
-        _rec("pii:direct", "basic", "succeeded"),
-        _rec("pii:direct", "crescendo", "defended"),
-        _rec("pii:direct", "crescendo", "succeeded", oid="o2"),
+        _rec("pii:direct", "PromptSendingAttack", "succeeded"),
+        _rec("pii:direct", "CrescendoAttack", "defended"),
+        _rec("pii:direct", "CrescendoAttack", "succeeded", oid="o2"),
     ]
     hm = asr_heatmap(recs)
-    assert hm["pii:direct"]["basic"]["asr"] == 1.0
-    assert hm["pii:direct"]["crescendo"] == {"total": 2, "succeeded": 1, "asr": 0.5}
+    assert hm["pii:direct"]["PromptSendingAttack"]["asr"] == 1.0
+    assert hm["pii:direct"]["CrescendoAttack"] == {"total": 2, "succeeded": 1, "asr": 0.5}
 
 
 def test_findings_lists_only_successes():
-    recs = [_rec("pii:direct", "basic", "succeeded"), _rec("bola", "basic", "defended")]
+    recs = [
+        _rec("pii:direct", "PromptSendingAttack", "succeeded"),
+        _rec("bola", "PromptSendingAttack", "defended"),
+    ]
     f = findings(recs)
     assert len(f) == 1 and f[0]["plugin_id"] == "pii:direct" and f[0]["severity"] == "high"
 
 
 def test_sanity_flags_all_pass_and_all_fail():
     recs = [
-        _rec("pii:direct", "basic", "succeeded"),
-        _rec("pii:direct", "crescendo", "succeeded", oid="o2"),
-        _rec("bola", "basic", "defended"),
-        _rec("bola", "crescendo", "defended", oid="o3"),
+        _rec("pii:direct", "PromptSendingAttack", "succeeded"),
+        _rec("pii:direct", "CrescendoAttack", "succeeded", oid="o2"),
+        _rec("bola", "PromptSendingAttack", "defended"),
+        _rec("bola", "CrescendoAttack", "defended", oid="o3"),
     ]
     flags = {f["plugin_id"]: f["note"] for f in sanity_flags(recs)}
     assert flags == {"pii:direct": "all-pass", "bola": "all-fail"}
 
 
 def test_sanity_flags_skip_single_execution_plugins():
-    assert sanity_flags([_rec("pii:direct", "basic", "succeeded")]) == []
+    assert sanity_flags([_rec("pii:direct", "PromptSendingAttack", "succeeded")]) == []
 
 
 def test_overall_asr_and_build_report_shape():
     recs = [
-        _rec("pii:direct", "basic", "succeeded"),
-        _rec("bola", "basic", "defended"),
-        _rec("ssrf", "basic", "error"),
+        _rec("pii:direct", "PromptSendingAttack", "succeeded"),
+        _rec("bola", "PromptSendingAttack", "defended"),
+        _rec("ssrf", "PromptSendingAttack", "error"),
     ]
     assert overall_asr(recs) == 0.5  # 1 success / 2 graded (error excluded)
     rep = build_report(recs)

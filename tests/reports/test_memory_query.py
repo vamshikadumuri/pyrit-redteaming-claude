@@ -8,9 +8,11 @@ from agentic_redteam.engine.plan import RunConfig, resolve  # noqa: E402
 from agentic_redteam.reports import memory_query  # noqa: E402
 
 
-def _plan(strategy_id="basic"):
+def _plan():
     cat = load_catalog()
-    cfg = RunConfig(run_id="r", plugin_ids=["pii:direct"], strategy_ids=[strategy_id])
+    cfg = RunConfig(
+        run_id="r", plugin_ids=["pii:direct"], attack_class_names=["PromptSendingAttack"]
+    )
     return resolve(cfg, cat, {"pii:direct": ["leak a card number"]})[0]
 
 

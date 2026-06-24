@@ -11,7 +11,7 @@ def _make_request_json() -> str:
         config=RunConfig(
             run_id="run_test01",
             plugin_ids=["pi_jailbreak"],
-            strategy_ids=["basic"],
+            attack_class_names=["PromptSendingAttack"],
             profile=AppProfile(),
             n=3,
             policy_text="",
@@ -38,7 +38,7 @@ def test_run_config_extracted_from_request_json():
     assert cfg["judge_endpoint"] == "http://judge:8000"
     assert cfg["judge_model"] == "gpt-4"
     assert cfg["plugin_ids"] == ["pi_jailbreak"]
-    assert cfg["strategy_ids"] == ["basic"]
+    assert cfg["attack_ids"] == ["PromptSendingAttack"]
     assert cfg["n"] == 3
     assert cfg["concurrency"] == 2
     assert cfg["requested_by"] == "tester"

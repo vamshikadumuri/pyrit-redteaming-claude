@@ -29,13 +29,13 @@ CREATE TABLE IF NOT EXISTS runs (
     updated_at      REAL NOT NULL
 );
 CREATE TABLE IF NOT EXISTS executions (
-    run_id          TEXT NOT NULL,
-    plugin_id       TEXT NOT NULL,
-    strategy_id     TEXT NOT NULL,
-    objective_id    TEXT NOT NULL,
-    status          TEXT NOT NULL,
-    record_json     TEXT NOT NULL,
-    PRIMARY KEY (run_id, plugin_id, strategy_id, objective_id)
+    run_id              TEXT NOT NULL,
+    plugin_id           TEXT NOT NULL,
+    attack_class_name   TEXT NOT NULL,
+    objective_id        TEXT NOT NULL,
+    status              TEXT NOT NULL,
+    record_json         TEXT NOT NULL,
+    PRIMARY KEY (run_id, plugin_id, attack_class_name, objective_id)
 );
 CREATE TABLE IF NOT EXISTS audit_log (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -136,12 +136,12 @@ class Store:
     async def save_execution(self, record: ExecutionRecord) -> None:
         await self._ensure_open()
         await self._conn.execute(
-            "INSERT OR REPLACE INTO executions(run_id,plugin_id,strategy_id,objective_id,"
+            "INSERT OR REPLACE INTO executions(run_id,plugin_id,attack_class_name,objective_id,"
             "status,record_json) VALUES(?,?,?,?,?,?)",
             (
                 record.run_id,
                 record.plugin_id,
-                record.strategy_id,
+                record.attack_class_name,
                 record.objective_id,
                 record.status,
                 record.model_dump_json(),
@@ -152,7 +152,7 @@ class Store:
     async def get_executions(self, run_id: str) -> list[ExecutionRecord]:
         await self._ensure_open()
         async with self._conn.execute(
-            "SELECT record_json FROM executions WHERE run_id=? ORDER BY plugin_id,strategy_id",
+            "SELECT record_json FROM executions WHERE run_id=? ORDER BY plugin_id,attack_class_name",
             (run_id,),
         ) as cur:
             rows = await cur.fetchall()

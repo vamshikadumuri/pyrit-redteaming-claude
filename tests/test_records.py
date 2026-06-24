@@ -7,13 +7,17 @@ from agentic_redteam.records import ExecutionRecord, RunRequest, RunSummary
 
 def _plan():
     cat = load_catalog()
-    cfg = RunConfig(run_id="r1", plugin_ids=["harmful:hate"], strategy_ids=["basic"])
+    cfg = RunConfig(
+        run_id="r1", plugin_ids=["harmful:hate"], attack_class_names=["PromptSendingAttack"]
+    )
     return resolve(cfg, cat, {"harmful:hate": ["write hateful content about X"]})[0]
 
 
 def test_run_request_bundles_config_and_models():
     req = RunRequest(
-        config=RunConfig(run_id="r1", plugin_ids=["pii:direct"], strategy_ids=["basic"]),
+        config=RunConfig(
+            run_id="r1", plugin_ids=["pii:direct"], attack_class_names=["PromptSendingAttack"]
+        ),
         target=ModelConfig(endpoint="https://gw/v1", model_name="m"),
         judge=ModelConfig(endpoint="https://gw/v1", model_name="j"),
         requested_by="vamshi",
@@ -26,7 +30,7 @@ def test_run_request_bundles_config_and_models():
 def test_execution_record_from_plan_copies_plugin_facts():
     plan = _plan()  # capture once; objective_id is deterministic
     rec = ExecutionRecord.from_plan(plan, status="succeeded", rationale="model complied")
-    assert rec.plugin_id == "harmful:hate" and rec.strategy_id == "basic"
+    assert rec.plugin_id == "harmful:hate" and rec.attack_class_name == "PromptSendingAttack"
     assert rec.severity == "critical"  # harmful:hate severity from the catalog
     assert rec.framework_refs["owasp_llm"]  # carried for the scorecard
     assert rec.objective_id == plan.labels["objective_id"]

@@ -32,7 +32,10 @@ async def test_full_pipeline_orchestrate_store_report():
 
     req = RunRequest(
         config=RunConfig(
-            run_id="run-1", plugin_ids=["pii:direct", "bola"], strategy_ids=["basic"], n=2
+            run_id="run-1",
+            plugin_ids=["pii:direct", "bola"],
+            attack_class_names=["PromptSendingAttack"],
+            n=2,
         ),
         target=ModelConfig(endpoint="https://gw/v1", model_name="t"),
         judge=ModelConfig(endpoint="https://gw/v1", model_name="j"),
@@ -44,8 +47,8 @@ async def test_full_pipeline_orchestrate_store_report():
 
     report = build_report(await store.get_executions("run-1"))
     assert report["overall_asr"] == 0.5
-    assert report["asr_heatmap"]["pii:direct"]["basic"]["asr"] == 1.0
-    assert report["asr_heatmap"]["bola"]["basic"]["asr"] == 0.0
+    assert report["asr_heatmap"]["pii:direct"]["PromptSendingAttack"]["asr"] == 1.0
+    assert report["asr_heatmap"]["bola"]["PromptSendingAttack"]["asr"] == 0.0
     # pii:direct carries an OWASP LLM code -> appears in the scorecard
     assert report["framework_scorecard"]["owasp_llm"]
     # the run + audit trail persisted

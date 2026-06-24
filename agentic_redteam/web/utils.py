@@ -133,6 +133,10 @@ def _build_run_request(data: dict, catalog) -> tuple[str, RunRequest]:
     n = int(n_str) if n_str else 5
     concurrency = int(concurrency_str) if concurrency_str else 4
 
+    # Default to PromptSendingAttack if no attack selected (keeps the run runnable)
+    if not attack_class_names:
+        attack_class_names = ["PromptSendingAttack"]
+
     config = RunConfig(
         run_id=run_id,
         plugin_ids=plugin_ids,
@@ -174,7 +178,7 @@ def _make_sse_generator(run_id: str, request: Request, store, manager):
                 html = render(
                     "partials/feed_row.html",
                     plugin_id=rec.plugin_id,
-                    strategy_id=rec.strategy_id,
+                    attack_class_name=rec.attack_class_name,
                     status=rec.status,
                 )
                 yield _sse("execution_done", html)
@@ -206,7 +210,7 @@ def _make_sse_generator(run_id: str, request: Request, store, manager):
                     html = render(
                         "partials/feed_row.html",
                         plugin_id=event.plugin_id,
-                        strategy_id=event.strategy_id,
+                        attack_class_name=event.attack_class_name,
                         status=event.status,
                     )
                     yield _sse("execution_done", html)

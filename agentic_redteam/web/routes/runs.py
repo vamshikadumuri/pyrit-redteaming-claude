@@ -40,7 +40,8 @@ def _extract_run_config(request_json: str | None) -> dict | None:
         "judge_endpoint": req.judge.endpoint,
         "judge_model": req.judge.model_name,
         "plugin_ids": req.config.plugin_ids,
-        "strategy_ids": req.config.strategy_ids,
+        "attack_ids": list(req.config.attack_class_names),
+        "converter_ids": list(req.config.converter_class_names),
         "n": req.config.n,
         "concurrency": req.concurrency,
         "requested_by": req.requested_by,
@@ -63,7 +64,11 @@ async def create_run(
         data = {}
         for k in form:
             vals = form.getlist(k)
-            data[k] = vals if k in ("plugin_ids", "strategy_ids") or len(vals) > 1 else vals[0]
+            data[k] = (
+                vals
+                if k in ("plugin_ids", "attack_ids", "converter_ids") or len(vals) > 1
+                else vals[0]
+            )
 
     run_id, req = _build_run_request(data, catalog)
     manager.start(req)
