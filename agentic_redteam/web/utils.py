@@ -27,7 +27,7 @@ _FINAL = {"completed", "stopped", "failed"}
 # ── Step fields per wizard step (used to exclude them from hidden inputs) ──
 _STEP_FIELDS: dict[int, set[str]] = {
     1: {"target_endpoint", "target_model", "target_api_key_env"},
-    2: {"preset", "plugin_ids", "strategy_ids", "scope_mode"},
+    2: {"preset", "plugin_ids", "attack_ids", "converter_ids", "scope_mode"},
     3: {"adversarial_endpoint", "adversarial_model", "adversarial_api_key_env"},
     4: {"judge_endpoint", "judge_model", "judge_api_key_env"},
     5: {"purpose", "tools", "roles", "data_channels", "entities"},
@@ -96,14 +96,21 @@ def _build_run_request(data: dict, catalog) -> tuple[str, RunRequest]:
     if preset_id:
         preset = catalog.presets[preset_id]
         plugin_ids = list(preset.plugins)
-        strategy_ids = list(preset.recommended_strategies) or ["basic"]
+        raw_attacks = data.get("attack_ids", [])
+        attack_class_names = raw_attacks if isinstance(raw_attacks, list) else _csv(raw_attacks)
+        raw_converters = data.get("converter_ids", [])
+        converter_class_names = (
+            raw_converters if isinstance(raw_converters, list) else _csv(raw_converters)
+        )
     else:
         raw_plugins = data.get("plugin_ids", [])
         plugin_ids = raw_plugins if isinstance(raw_plugins, list) else _csv(raw_plugins)
-        raw_strats = data.get("strategy_ids", [])
-        strategy_ids = (raw_strats if isinstance(raw_strats, list) else _csv(raw_strats)) or [
-            "basic"
-        ]
+        raw_attacks = data.get("attack_ids", [])
+        attack_class_names = raw_attacks if isinstance(raw_attacks, list) else _csv(raw_attacks)
+        raw_converters = data.get("converter_ids", [])
+        converter_class_names = (
+            raw_converters if isinstance(raw_converters, list) else _csv(raw_converters)
+        )
 
     profile = AppProfile(
         purpose=data.get("purpose", ""),
@@ -126,10 +133,15 @@ def _build_run_request(data: dict, catalog) -> tuple[str, RunRequest]:
     n = int(n_str) if n_str else 5
     concurrency = int(concurrency_str) if concurrency_str else 4
 
+    # Default to PromptSendingAttack if no attack selected (keeps the run runnable)
+    if not attack_class_names:
+        attack_class_names = ["PromptSendingAttack"]
+
     config = RunConfig(
         run_id=run_id,
         plugin_ids=plugin_ids,
-        strategy_ids=strategy_ids,
+        attack_class_names=attack_class_names,
+        converter_class_names=converter_class_names,
         profile=profile,
         n=n,
         policy_text=data.get("policy_text", ""),
@@ -166,7 +178,7 @@ def _make_sse_generator(run_id: str, request: Request, store, manager):
                 html = render(
                     "partials/feed_row.html",
                     plugin_id=rec.plugin_id,
-                    strategy_id=rec.strategy_id,
+                    attack_class_name=rec.attack_class_name,
                     status=rec.status,
                 )
                 yield _sse("execution_done", html)
@@ -198,7 +210,7 @@ def _make_sse_generator(run_id: str, request: Request, store, manager):
                     html = render(
                         "partials/feed_row.html",
                         plugin_id=event.plugin_id,
-                        strategy_id=event.strategy_id,
+                        attack_class_name=event.attack_class_name,
                         status=event.status,
                     )
                     yield _sse("execution_done", html)

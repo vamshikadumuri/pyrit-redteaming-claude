@@ -7,19 +7,9 @@ from __future__ import annotations
 import json
 
 from agentic_redteam.catalog.loader import Catalog
-from agentic_redteam.catalog.models import Fidelity, StrategyKind
-from agentic_redteam.engine.strategy_map import resolve_strategy
 from agentic_redteam.engine.trajectory import fidelity_label
 from agentic_redteam.records import ExecutionRecord, RunSummary
 from agentic_redteam.reports import aggregation
-
-_FIDELITY_BADGE = {
-    Fidelity.clean: "✓",
-    Fidelity.approximate: "⚠",
-    Fidelity.custom_needed: "✕",
-    Fidelity.na: "✕",
-    Fidelity.meta: "⤬",
-}
 
 
 def report_context(summary: RunSummary, records: list[ExecutionRecord]) -> dict:
@@ -56,7 +46,7 @@ def wizard_view(catalog: Catalog) -> dict:
             "title": p.title,
             "framework": p.framework,
             "plugin_count": len(p.plugins),
-            "recommended_strategies": p.recommended_strategies,
+            "plugins": list(p.plugins),
         }
         for p in catalog.presets.values()
     ]
@@ -75,24 +65,30 @@ def wizard_view(catalog: Catalog) -> dict:
         ]
         for group, plugins in catalog.plugins_by_group().items()
     }
-    strategies = []
-    for s in catalog.strategies.values():
-        if s.kind == StrategyKind.utility or s.id == "retry":
-            continue
-        spec = resolve_strategy(s)
-        strategies.append(
-            {
-                "id": s.id,
-                "display_name": s.display_name,
-                "fidelity": spec.fidelity.value,
-                "badge": _FIDELITY_BADGE.get(spec.fidelity, "?"),
-                "supported": spec.supported,
-                "disabled": not spec.supported,
-                "note": spec.note,
-                "is_multi_turn": spec.mechanism == "multi_turn",
-            }
-        )
-    return {"presets": presets, "groups": groups, "strategies": strategies}
+    attacks = [
+        {
+            "class_name": a.class_name,
+            "display_name": a.display_name,
+            "turn_type": a.turn_type.value,
+            "runnable": a.runnable,
+            "runnable_reason": a.runnable_reason,
+            "needs_adversarial": "adversarial_chat" in a.needs,
+        }
+        for a in catalog.attacks.values()
+        if a.runnable  # skip non-runnable (SequentialAttack)
+    ]
+    converters = [
+        {
+            "class_name": c.class_name,
+            "display_name": c.display_name,
+            "category": c.category.value,
+            "requirement": c.requirement.value,
+            "runnable": c.runnable,
+            "runnable_reason": c.runnable_reason,
+        }
+        for c in catalog.converters.values()
+    ]
+    return {"presets": presets, "groups": groups, "attacks": attacks, "converters": converters}
 
 
 def run_list_view(rows: list[dict]) -> list[dict]:

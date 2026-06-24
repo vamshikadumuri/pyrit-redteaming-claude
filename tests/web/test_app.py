@@ -17,7 +17,9 @@ from agentic_redteam.records import ExecutionRecord  # noqa: E402
 
 
 def _succeeds(plan: AttackPlan) -> bool:
-    h = hashlib.sha256(f"{plan.plugin.id}|{plan.strategy_id}|{plan.objective}".encode()).hexdigest()
+    h = hashlib.sha256(
+        f"{plan.plugin.id}|{plan.attack.class_name}|{plan.objective}".encode()
+    ).hexdigest()
     return int(h[:8], 16) % 3 == 0
 
 

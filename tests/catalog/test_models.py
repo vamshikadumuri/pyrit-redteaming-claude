@@ -1,16 +1,17 @@
 # tests/catalog/test_models.py
 from agentic_redteam.catalog.models import (
-    Fidelity,
+    ConverterCategory,
     FrameworkRefs,
     ObjectiveSource,
     Plugin,
     PluginType,
     Preset,
+    PyritAttack,
+    PyritConverter,
+    Requirement,
     RubricKind,
     Severity,
-    Strategy,
-    StrategyKind,
-    StrategyType,
+    TurnType,
 )
 
 
@@ -33,21 +34,28 @@ def test_plugin_defaults_and_enums():
     assert p.seed_dataset is None
 
 
-def test_strategy_enums_and_defaults():
-    s = Strategy(
-        id="crescendo",
+def test_pyrit_attack_model():
+    a = PyritAttack(
+        class_name="CrescendoAttack",
         display_name="Crescendo",
-        type=StrategyType.multi_turn,
-        kind=StrategyKind.attack,
-        offline=True,
-        fidelity=Fidelity.clean,
+        turn_type=TurnType.multi_turn,
+        needs=["adversarial_chat"],
+        params={"max_turns": 10},
     )
-    assert s.type is StrategyType.multi_turn
-    assert s.kind is StrategyKind.attack
-    assert s.fidelity is Fidelity.clean
-    assert s.converter_chain == []
-    assert s.pyrit_class is None
-    assert s.is_default is False
+    assert a.turn_type is TurnType.multi_turn
+    assert a.runnable is True
+    assert "adversarial_chat" in a.needs
+
+
+def test_pyrit_converter_model():
+    c = PyritConverter(
+        class_name="Base64Converter",
+        display_name="Base64",
+        category=ConverterCategory.encoding,
+        requirement=Requirement.offline,
+    )
+    assert c.runnable is True
+    assert c.requirement is Requirement.offline
 
 
 def test_preset_requires_plugins():
@@ -58,8 +66,6 @@ def test_preset_requires_plugins():
         plugins=["excessive-agency"],
     )
     assert pr.plugins == ["excessive-agency"]
-    assert pr.recommended_strategies == []
-    assert pr.category_index == {}
 
 
 def test_framework_refs_holds_codes():

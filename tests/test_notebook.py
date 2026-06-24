@@ -49,7 +49,7 @@ async def test_notebook_demo_flow():
     config = RunConfig(
         run_id=run_id,
         plugin_ids=preset.plugins[:3],
-        strategy_ids=preset.recommended_strategies[:1],
+        attack_class_names=["PromptSendingAttack"],
         profile=AppProfile(purpose="banking chatbot"),
         n=2,
     )

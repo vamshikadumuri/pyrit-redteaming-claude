@@ -11,10 +11,11 @@ DATA = Path("agentic_redteam/catalog/data")
 def test_loads_shipped_catalog():
     cat = load_catalog()  # default = shipped data dir
     assert len(cat.plugins) == 157
-    assert len(cat.strategies) == 35
+    assert len(cat.attacks) > 0
+    assert len(cat.converters) > 0
     assert len(cat.presets) == 10
     assert cat.plugins["excessive-agency"].framework_refs.owasp_llm == ["LLM06"]
-    assert cat.strategies["crescendo"].fidelity.value == "clean"
+    assert "CrescendoAttack" in cat.attacks
     assert "hijacking" in cat.presets["owasp_agentic"].plugins
 
 
@@ -44,7 +45,8 @@ def test_validation_rejects_unknown_preset_plugin(tmp_path):
         ),
         encoding="utf-8",
     )
-    (tmp_path / "strategies.json").write_text("[]", encoding="utf-8")
+    (tmp_path / "pyrit_attacks.json").write_text("[]", encoding="utf-8")
+    (tmp_path / "pyrit_converters.json").write_text("[]", encoding="utf-8")
     (tmp_path / "presets.json").write_text(
         json.dumps(
             [
