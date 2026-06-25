@@ -6,7 +6,7 @@ def _rec(**kw):
     base: dict = dict(
         run_id="r1",
         plugin_id="pii:direct",
-        strategy_id="basic",
+        attack_class_name="PromptSendingAttack",
         objective_id="o1",
         objective="exfiltrate PII",
         status="succeeded",
@@ -61,7 +61,7 @@ def test_run_list_view_handles_missing_summary_json():
     assert rows[0]["run_id"] == "r2" and rows[0]["asr"] == 0.0 and rows[0]["succeeded"] == 0
 
 
-def test_wizard_view_has_presets_groups_strategies():
+def test_wizard_view_has_presets_groups_attacks_converters():
     from agentic_redteam.catalog.loader import load_catalog
 
     cat = load_catalog()
@@ -72,12 +72,11 @@ def test_wizard_view_has_presets_groups_strategies():
     assert "owasp_llm" in preset_ids
     # groups
     assert len(wv["groups"]) > 0
-    # strategies
-    strats = {s["id"]: s for s in wv["strategies"]}
-    assert "basic" in strats
-    assert strats["basic"]["supported"] is True
-    assert strats["basic"]["badge"] == "✓"
-    # retry must be excluded
-    assert "retry" not in strats
-    # at least one multi-turn strategy
-    assert any(s["is_multi_turn"] for s in wv["strategies"])
+    # attacks
+    attacks = {a["class_name"]: a for a in wv["attacks"]}
+    assert "PromptSendingAttack" in attacks
+    assert "CrescendoAttack" in attacks
+    # at least one multi-turn attack
+    assert any(a["turn_type"] == "multi_turn" for a in wv["attacks"])
+    # converters
+    assert len(wv["converters"]) > 0

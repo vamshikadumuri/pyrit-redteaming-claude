@@ -25,35 +25,38 @@ class Severity(StrEnum):
     low = "low"
 
 
-class StrategyType(StrEnum):
-    encoding = "encoding"
-    single_turn = "single_turn"
-    multi_turn = "multi_turn"
-    multimodal = "multimodal"
-    utility = "utility"
-
-
-class StrategyKind(StrEnum):
-    attack = "attack"
-    converter = "converter"
-    meta = "meta"
-    utility = "utility"
-
-
-class Fidelity(StrEnum):
-    clean = "clean"
-    approximate = "approximate"
-    custom_needed = "custom_needed"
-    meta = "meta"
-    na = "na"
-
-
 class RubricKind(StrEnum):
     llm_rubric = "llm_rubric"
     shared_grader = "shared_grader"
     dynamic = "dynamic"
     dataset = "dataset"
     heuristic = "heuristic"
+
+
+class TurnType(StrEnum):
+    single_turn = "single_turn"
+    multi_turn = "multi_turn"
+    meta = "meta"
+
+
+class Requirement(StrEnum):
+    offline = "offline"
+    llm_target = "llm_target"
+    multimodal = "multimodal"
+    audio = "audio"
+    file = "file"
+    azure_service = "azure_service"
+
+
+class ConverterCategory(StrEnum):
+    encoding = "encoding"
+    text_transform = "text_transform"
+    smuggling = "smuggling"
+    llm_rewrite = "llm_rewrite"
+    multimodal = "multimodal"
+    audio = "audio"
+    file = "file"
+    azure = "azure"
 
 
 class FrameworkRefs(BaseModel):
@@ -81,20 +84,23 @@ class Plugin(BaseModel):
     runnable_reason: str = ""
 
 
-class Strategy(BaseModel):
-    id: str
+class PyritAttack(BaseModel):
+    class_name: str
     display_name: str
-    type: StrategyType
-    kind: StrategyKind
-    offline: bool
-    pyrit_class: str | None = None
-    converter_chain: list[str] = Field(default_factory=list)
-    pyrit_equivalent: str = ""
-    fidelity: Fidelity
-    is_default: bool = False
+    turn_type: TurnType
     needs: list[str] = Field(default_factory=list)
     params: dict = Field(default_factory=dict)
-    description: str = ""
+    runnable: bool = True
+    runnable_reason: str = ""
+
+
+class PyritConverter(BaseModel):
+    class_name: str
+    display_name: str
+    category: ConverterCategory
+    requirement: Requirement
+    runnable: bool = True
+    runnable_reason: str = ""
 
 
 class Preset(BaseModel):
@@ -102,5 +108,3 @@ class Preset(BaseModel):
     framework: str
     title: str
     plugins: list[str]
-    recommended_strategies: list[str] = Field(default_factory=list)
-    category_index: dict[str, list[str]] = Field(default_factory=dict)

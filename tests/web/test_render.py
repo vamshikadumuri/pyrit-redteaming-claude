@@ -23,7 +23,7 @@ def test_render_report_shows_asr_and_finding():
             "findings": [
                 {
                     "plugin_id": "pii:direct",
-                    "strategy_id": "basic",
+                    "attack_class_name": "PromptSendingAttack",
                     "objective": "x",
                     "severity": "high",
                     "fidelity": "text_inferred",
@@ -134,7 +134,7 @@ def test_render_report_drilldown_and_sanity():
             "findings": [
                 {
                     "plugin_id": "pii:direct",
-                    "strategy_id": "basic",
+                    "attack_class_name": "PromptSendingAttack",
                     "objective": "steal PII",
                     "severity": "high",
                     "fidelity": "text_inferred",
@@ -144,7 +144,7 @@ def test_render_report_drilldown_and_sanity():
                 },
                 {
                     "plugin_id": "harmful:hate",
-                    "strategy_id": "crescendo",
+                    "attack_class_name": "CrescendoAttack",
                     "objective": "generate hate",
                     "severity": "critical",
                     "fidelity": "text_inferred",

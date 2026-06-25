@@ -18,7 +18,7 @@ class ProgressEvent(BaseModel):
     completed: int = 0
     total: int = 0
     plugin_id: str = ""
-    strategy_id: str = ""
+    attack_class_name: str = ""
     objective_id: str = ""
     status: str = ""  # execution status, for kind == "execution_done"
 

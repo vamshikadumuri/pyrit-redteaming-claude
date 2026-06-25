@@ -69,6 +69,84 @@
     </div>
   </div>
 
+  <!-- Run Configuration -->
+  {% if run_config %}
+  <div class="mb-6">
+    <details class="bg-gray-850 border border-gray-800 rounded-xl overflow-hidden">
+      <summary class="px-4 py-3.5 cursor-pointer select-none hover:bg-gray-800/50 flex items-center justify-between list-none">
+        <h2 class="text-base font-semibold text-gray-200">Run Configuration</h2>
+        <span class="text-gray-500 text-xs">▼</span>
+      </summary>
+      <div class="border-t border-gray-800 px-4 py-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+
+        <!-- Target -->
+        <div>
+          <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Target LLM</div>
+          <div class="text-sm text-gray-200 font-mono">{{ run_config.target_model }}</div>
+          <div class="text-xs text-gray-500 mt-0.5 truncate" title="{{ run_config.target_endpoint }}">{{ run_config.target_endpoint }}</div>
+        </div>
+
+        <!-- Attacker -->
+        {% if run_config.adversarial_endpoint %}
+        <div>
+          <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Attacker LLM</div>
+          <div class="text-sm text-gray-200 font-mono">{{ run_config.adversarial_model }}</div>
+          <div class="text-xs text-gray-500 mt-0.5 truncate" title="{{ run_config.adversarial_endpoint }}">{{ run_config.adversarial_endpoint }}</div>
+        </div>
+        {% endif %}
+
+        <!-- Judge -->
+        <div>
+          <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Judge LLM</div>
+          <div class="text-sm text-gray-200 font-mono">{{ run_config.judge_model }}</div>
+          <div class="text-xs text-gray-500 mt-0.5 truncate" title="{{ run_config.judge_endpoint }}">{{ run_config.judge_endpoint }}</div>
+        </div>
+
+        <!-- Plugins -->
+        <div>
+          <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Plugins</div>
+          <div class="flex flex-wrap gap-1">
+            {% for p in run_config.plugin_ids %}
+            <span class="text-xs px-2 py-0.5 rounded bg-gray-800 text-gray-300 font-mono">{{ p }}</span>
+            {% endfor %}
+          </div>
+        </div>
+
+        <!-- Strategies -->
+        <div>
+          <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Strategies</div>
+          <div class="flex flex-wrap gap-1">
+            {% for s in run_config.strategy_ids %}
+            <span class="text-xs px-2 py-0.5 rounded bg-gray-800 text-gray-300 font-mono">{{ s }}</span>
+            {% endfor %}
+          </div>
+        </div>
+
+        <!-- Run params -->
+        <div>
+          <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Parameters</div>
+          <div class="text-xs text-gray-400 space-y-0.5">
+            <div>Objectives per plugin: <span class="text-gray-200 font-mono">{{ run_config.n }}</span></div>
+            <div>Concurrency: <span class="text-gray-200 font-mono">{{ run_config.concurrency }}</span></div>
+            {% if run_config.requested_by %}
+            <div>Requested by: <span class="text-gray-200">{{ run_config.requested_by }}</span></div>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Policy text -->
+        {% if run_config.policy_text %}
+        <div class="sm:col-span-2">
+          <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Policy Text</div>
+          <p class="text-xs text-gray-400 bg-gray-900/50 rounded-lg px-3 py-2 border border-gray-800/50 leading-relaxed">{{ run_config.policy_text }}</p>
+        </div>
+        {% endif %}
+
+      </div>
+    </details>
+  </div>
+  {% endif %}
+
   <!-- Findings -->
   <div class="mb-6">
     <div class="flex items-center gap-2 mb-3">
@@ -95,7 +173,7 @@
             {{ f.severity }}
           </span>
           <span class="font-mono text-xs text-gray-200 font-medium">{{ f.plugin_id }}</span>
-          <span class="text-gray-500 text-xs">via {{ f.strategy_id }}</span>
+          <span class="text-gray-500 text-xs">via {{ f.attack_class_name }}</span>
           {% if f.fidelity_label %}
           <span class="text-gray-600 text-xs ml-auto mr-2 flex-shrink-0">{{ f.fidelity_label }}</span>
           {% endif %}
@@ -217,7 +295,7 @@
             <tr class="hover:bg-gray-800/30 transition-colors group cursor-pointer"
                 x-data="{ open: false }" @click="open = !open">
               <td class="px-4 py-3 font-mono text-xs text-gray-300 align-top">{{ ex.plugin_id }}</td>
-              <td class="px-4 py-3 text-xs text-gray-500 align-top">{{ ex.strategy_id }}</td>
+              <td class="px-4 py-3 text-xs text-gray-500 align-top">{{ ex.attack_class_name }}</td>
               <td class="px-4 py-3 text-xs text-gray-400 align-top">
                 <div :class="open ? '' : 'line-clamp-2'">{{ ex.objective }}</div>
                 {% if ex.response_text %}

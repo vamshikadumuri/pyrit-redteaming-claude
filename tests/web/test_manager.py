@@ -28,7 +28,9 @@ async def test_manager_runs_to_completion_and_persists():
     mgr = RunManager(cat, store, executor_factory=_fake_exec_factory, llm_factory=_fake_llm_factory)
     m = ModelConfig(endpoint="http://t/v1", model_name="t")
     req = RunRequest(
-        config=RunConfig(run_id="r1", plugin_ids=["pii:direct"], strategy_ids=["basic"], n=2),
+        config=RunConfig(
+            run_id="r1", plugin_ids=["pii:direct"], attack_class_names=["PromptSendingAttack"], n=2
+        ),
         target=m,
         judge=m,
         requested_by="t",
@@ -53,7 +55,9 @@ async def test_manager_stop_cancels_pending():
     )
     m = ModelConfig(endpoint="http://t/v1", model_name="t")
     req = RunRequest(
-        config=RunConfig(run_id="r2", plugin_ids=["pii:direct"], strategy_ids=["basic"], n=3),
+        config=RunConfig(
+            run_id="r2", plugin_ids=["pii:direct"], attack_class_names=["PromptSendingAttack"], n=3
+        ),
         target=m,
         judge=m,
         requested_by="t",

@@ -25,6 +25,30 @@ _log = logging.getLogger(__name__)
 router = APIRouter(prefix="/runs", tags=["runs"])
 
 
+def _extract_run_config(request_json: str | None) -> dict | None:
+    if not request_json:
+        return None
+    try:
+        req = RunRequest.model_validate_json(request_json)
+    except Exception:
+        return None
+    return {
+        "target_endpoint": req.target.endpoint,
+        "target_model": req.target.model_name,
+        "adversarial_endpoint": req.adversarial.endpoint if req.adversarial else None,
+        "adversarial_model": req.adversarial.model_name if req.adversarial else None,
+        "judge_endpoint": req.judge.endpoint,
+        "judge_model": req.judge.model_name,
+        "plugin_ids": req.config.plugin_ids,
+        "attack_ids": list(req.config.attack_class_names),
+        "converter_ids": list(req.config.converter_class_names),
+        "n": req.config.n,
+        "concurrency": req.concurrency,
+        "requested_by": req.requested_by,
+        "policy_text": req.config.policy_text,
+    }
+
+
 @router.post("")
 async def create_run(
     request: Request,
@@ -40,7 +64,11 @@ async def create_run(
         data = {}
         for k in form:
             vals = form.getlist(k)
-            data[k] = vals if k in ("plugin_ids", "strategy_ids") or len(vals) > 1 else vals[0]
+            data[k] = (
+                vals
+                if k in ("plugin_ids", "attack_ids", "converter_ids") or len(vals) > 1
+                else vals[0]
+            )
 
     run_id, req = _build_run_request(data, catalog)
     manager.start(req)
@@ -131,7 +159,14 @@ async def run_report(
         summary = RunSummary(run_id=run_id, status=(row["status"] if row else "unknown"))
     records = await store.get_executions(run_id)
     ctx = presenters.report_context(summary, records)
-    html = render("report.html", title=f"Report — {run_id}", ctx=ctx, request=request)
+    run_config = _extract_run_config(row.get("request_json") if row else None)
+    html = render(
+        "report.html",
+        title=f"Report — {run_id}",
+        ctx=ctx,
+        run_config=run_config,
+        request=request,
+    )
     return HTMLResponse(html)
 
 

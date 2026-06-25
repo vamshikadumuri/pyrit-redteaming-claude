@@ -10,7 +10,9 @@ from agentic_redteam.store import Store
 
 def _request(run_id="run-1"):
     return RunRequest(
-        config=RunConfig(run_id=run_id, plugin_ids=["pii:direct"], strategy_ids=["basic"]),
+        config=RunConfig(
+            run_id=run_id, plugin_ids=["pii:direct"], attack_class_names=["PromptSendingAttack"]
+        ),
         target=ModelConfig(endpoint="https://gw/v1", model_name="m"),
         judge=ModelConfig(endpoint="https://gw/v1", model_name="j"),
         requested_by="vamshi",
@@ -19,7 +21,9 @@ def _request(run_id="run-1"):
 
 def _record(run_id="run-1", status="succeeded"):
     cat = load_catalog()
-    cfg = RunConfig(run_id=run_id, plugin_ids=["pii:direct"], strategy_ids=["basic"])
+    cfg = RunConfig(
+        run_id=run_id, plugin_ids=["pii:direct"], attack_class_names=["PromptSendingAttack"]
+    )
     plan = resolve(cfg, cat, {"pii:direct": ["leak a card number"]})[0]
     return ExecutionRecord.from_plan(plan, status=status, rationale="r")
 

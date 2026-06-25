@@ -21,7 +21,9 @@ async def _form_data(request: Request) -> dict:
     data: dict = {}
     for k in form:
         vals = form.getlist(k)
-        data[k] = vals if k in ("plugin_ids", "strategy_ids") or len(vals) > 1 else vals[0]
+        data[k] = (
+            vals if k in ("plugin_ids", "attack_ids", "converter_ids") or len(vals) > 1 else vals[0]
+        )
     return data
 
 
@@ -41,8 +43,8 @@ async def wizard_step_get(
     catalog: Annotated[Catalog, Depends(get_catalog)],
 ) -> HTMLResponse:
     params: dict = dict(request.query_params)
-    # Multi-value query params (plugin_ids, strategy_ids)
-    for key in ("plugin_ids", "strategy_ids"):
+    # Multi-value query params (plugin_ids, attack_ids, converter_ids)
+    for key in ("plugin_ids", "attack_ids", "converter_ids"):
         vals = request.query_params.getlist(key)
         if vals:
             params[key] = vals

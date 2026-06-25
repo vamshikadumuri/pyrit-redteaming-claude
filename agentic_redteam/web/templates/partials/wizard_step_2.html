@@ -1,7 +1,7 @@
 <div data-step="2" class="space-y-5" x-data="{ mode: '{{ 'custom' if data.get('plugin_ids') else 'preset' }}' }">
   <div>
     <h2 class="text-lg font-semibold text-white">Scope</h2>
-    <p class="text-sm text-gray-400 mt-1">Choose a framework preset or hand-pick plugins and strategies.</p>
+    <p class="text-sm text-gray-400 mt-1">Choose a framework preset or hand-pick plugins. Then select PyRIT attacks and converters.</p>
   </div>
 
   {{ hidden }}
@@ -18,12 +18,13 @@
   </div>
 
   <!-- Preset panel -->
-  <div x-show="mode==='preset'" x-cloak>
+  <div x-show="mode==='preset'" x-cloak x-data="{ selectedPreset: '{{ data.get('preset', '') }}' }">
     <div class="grid grid-cols-2 gap-3">
       {% for p in wizard.presets %}
       {% if p.plugin_count > 0 %}
       <label class="group cursor-pointer">
         <input type="radio" name="preset" value="{{ p.id }}" class="sr-only peer"
+               @change="selectedPreset = '{{ p.id }}'"
                {% if data.get('preset') == p.id or (loop.first and not data.get('preset')) %}checked{% endif %}>
         <div class="border-2 rounded-xl p-4 transition-all h-full
                     peer-checked:border-red-500 peer-checked:bg-red-950/20
@@ -35,11 +36,23 @@
       {% endif %}
       {% endfor %}
     </div>
+    <!-- Plugin coverage for selected preset -->
+    {% for p in wizard.presets %}
+    {% if p.plugin_count > 0 %}
+    <div x-show="selectedPreset === '{{ p.id }}'" x-cloak class="mt-3 bg-gray-800/50 rounded-xl border border-gray-700 px-4 py-3">
+      <div class="text-xs text-gray-500 uppercase tracking-wider mb-2">Plugins covered — {{ p.title }}</div>
+      <div class="flex flex-wrap gap-1.5">
+        {% for pid in p.plugins %}
+        <span class="text-xs bg-gray-700 text-gray-300 px-2 py-0.5 rounded">{{ pid }}</span>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+    {% endfor %}
   </div>
 
   <!-- Custom panel -->
   <div x-show="mode==='custom'" x-cloak class="space-y-3">
-    <!-- Plugins -->
     <details open class="bg-gray-850 rounded-xl border border-gray-700">
       <summary class="px-4 py-3 font-medium text-sm text-gray-200 cursor-pointer select-none hover:text-white list-none flex justify-between items-center">
         <span>Plugins <span class="text-gray-500 font-normal">({{ wizard.groups.values() | map('length') | sum }} total)</span></span>
@@ -72,27 +85,80 @@
         {% endfor %}
       </div>
     </details>
-
-    <!-- Strategies -->
-    <details open class="bg-gray-850 rounded-xl border border-gray-700">
-      <summary class="px-4 py-3 font-medium text-sm text-gray-200 cursor-pointer select-none hover:text-white list-none flex justify-between items-center">
-        <span>Strategies</span>
-        <span class="text-gray-500 text-xs">▼</span>
-      </summary>
-      <div class="px-4 pb-4 grid grid-cols-2 gap-1 mt-2">
-        {% for s in wizard.strategies %}
-        <label class="flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-gray-800 cursor-pointer {{ 'opacity-40 cursor-not-allowed' if s.disabled }}">
-          <input type="checkbox" name="strategy_ids" value="{{ s.id }}"
-                 {{ 'checked' if s.id == 'basic' or s.id in (data.get('strategy_ids') or []) }}
-                 {{ 'disabled' if s.disabled }}
-                 class="rounded border-gray-600 bg-gray-700 text-red-500 focus:ring-red-500 focus:ring-offset-gray-900">
-          <span class="text-sm text-gray-300">{{ s.display_name }}</span>
-          <span class="font-bold text-sm {{ 'text-green-400' if s.badge == '✓' else 'text-amber-400' if s.badge == '⚠' else 'text-gray-500' }}">{{ s.badge }}</span>
-        </label>
-        {% endfor %}
-      </div>
-    </details>
   </div>
+
+  <!-- Attacks (shown in both modes) -->
+  <details open class="bg-gray-850 rounded-xl border border-gray-700">
+    <summary class="px-4 py-3 font-medium text-sm text-gray-200 cursor-pointer select-none hover:text-white list-none flex justify-between items-center">
+      <span>Attacks <span class="text-gray-500 font-normal text-xs ml-1">PyRIT-native</span></span>
+      <span class="text-gray-500 text-xs">▼</span>
+    </summary>
+    <div class="px-4 pb-4 mt-2 space-y-4">
+      <!-- Single-turn attacks -->
+      <div>
+        <div class="text-xs text-gray-500 uppercase tracking-wider mb-2">Single-turn</div>
+        <div class="grid grid-cols-2 gap-1">
+          {% for a in wizard.attacks if a.turn_type == 'single_turn' %}
+          <label class="flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-gray-800 cursor-pointer">
+            <input type="checkbox" name="attack_ids" value="{{ a.class_name }}"
+                   {{ 'checked' if a.class_name == 'PromptSendingAttack' or a.class_name in (data.get('attack_ids') or []) }}
+                   class="rounded border-gray-600 bg-gray-700 text-red-500 focus:ring-red-500 focus:ring-offset-gray-900">
+            <span class="text-sm text-gray-300">{{ a.display_name }}</span>
+          </label>
+          {% endfor %}
+        </div>
+      </div>
+      <!-- Multi-turn attacks -->
+      <div>
+        <div class="text-xs text-gray-500 uppercase tracking-wider mb-2">Multi-turn</div>
+        <div class="grid grid-cols-2 gap-1">
+          {% for a in wizard.attacks if a.turn_type == 'multi_turn' %}
+          <label class="flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-gray-800 cursor-pointer">
+            <input type="checkbox" name="attack_ids" value="{{ a.class_name }}"
+                   {{ 'checked' if a.class_name in (data.get('attack_ids') or []) }}
+                   class="rounded border-gray-600 bg-gray-700 text-red-500 focus:ring-red-500 focus:ring-offset-gray-900">
+            <span class="text-sm text-gray-300">{{ a.display_name }}</span>
+            {% if a.needs_adversarial %}
+            <span class="text-xs bg-amber-900/30 text-amber-400 px-1.5 py-0.5 rounded ml-auto">needs attacker LLM</span>
+            {% endif %}
+          </label>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </details>
+
+  <!-- Converters (shown in both modes) -->
+  <details class="bg-gray-850 rounded-xl border border-gray-700">
+    <summary class="px-4 py-3 font-medium text-sm text-gray-200 cursor-pointer select-none hover:text-white list-none flex justify-between items-center">
+      <span>Converters <span class="text-gray-500 font-normal text-xs ml-1">optional · applied to all attacks</span></span>
+      <span class="text-gray-500 text-xs">▼</span>
+    </summary>
+    <div class="px-4 pb-4 divide-y divide-gray-800">
+      {% set categories = wizard.converters | map(attribute='category') | unique | list %}
+      {% for cat in categories %}
+      <div class="pt-3 first:pt-0">
+        <div class="text-xs text-gray-500 uppercase tracking-wider mb-2">{{ cat | replace('_', ' ') }}</div>
+        <div class="space-y-0.5">
+          {% for c in wizard.converters if c.category == cat %}
+          <label class="flex items-center gap-2.5 px-2 py-1.5 rounded-lg {{ 'opacity-40 cursor-not-allowed' if not c.runnable else 'hover:bg-gray-800 cursor-pointer' }}">
+            <input type="checkbox" name="converter_ids" value="{{ c.class_name }}"
+                   {{ 'disabled' if not c.runnable }}
+                   {{ 'checked' if c.class_name in (data.get('converter_ids') or []) }}
+                   class="rounded border-gray-600 bg-gray-700 text-red-500 focus:ring-red-500 focus:ring-offset-gray-900">
+            <span class="text-sm text-gray-300 flex-1">{{ c.display_name }}</span>
+            {% if not c.runnable %}
+            <span class="text-xs bg-gray-700 text-gray-500 px-1.5 py-0.5 rounded">{{ c.runnable_reason }}</span>
+            {% elif c.requirement == 'llm_target' %}
+            <span class="text-xs bg-blue-900/30 text-blue-400 px-1.5 py-0.5 rounded">LLM</span>
+            {% endif %}
+          </label>
+          {% endfor %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </details>
 
   <div class="flex justify-between pt-4 border-t border-gray-800">
     <button type="button"

@@ -47,15 +47,15 @@ def framework_scorecard(records: list[ExecutionRecord]) -> dict:
 
 
 def asr_heatmap(records: list[ExecutionRecord]) -> dict:
-    """plugin_id -> strategy_id -> {total, succeeded, asr}."""
+    """plugin_id -> attack_class_name -> {total, succeeded, asr}."""
     cells: dict[tuple[str, str], dict] = defaultdict(lambda: {"total": 0, "succeeded": 0})
     for r in _graded(records):
-        c = cells[(r.plugin_id, r.strategy_id)]
+        c = cells[(r.plugin_id, r.attack_class_name)]
         c["total"] += 1
         c["succeeded"] += int(r.succeeded)
     out: dict[str, dict[str, dict]] = defaultdict(dict)
-    for (pid, sid), c in cells.items():
-        out[pid][sid] = {
+    for (pid, attack), c in cells.items():
+        out[pid][attack] = {
             "total": c["total"],
             "succeeded": c["succeeded"],
             "asr": _asr(c["succeeded"], c["total"]),
@@ -67,7 +67,7 @@ def findings(records: list[ExecutionRecord]) -> list[dict]:
     return [
         {
             "plugin_id": r.plugin_id,
-            "strategy_id": r.strategy_id,
+            "attack_class_name": r.attack_class_name,
             "objective": r.objective,
             "severity": r.severity,
             "fidelity": r.fidelity,
@@ -89,7 +89,7 @@ def all_executions(records: list[ExecutionRecord]) -> list[dict]:
     return [
         {
             "plugin_id": r.plugin_id,
-            "strategy_id": r.strategy_id,
+            "attack_class_name": r.attack_class_name,
             "objective": r.objective,
             "status": r.status,
             "score_value": r.score_value,

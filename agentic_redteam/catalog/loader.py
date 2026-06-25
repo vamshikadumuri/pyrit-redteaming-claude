@@ -7,7 +7,7 @@ from pathlib import Path
 
 from pydantic import BaseModel
 
-from .models import Plugin, Preset, Strategy
+from .models import Plugin, Preset, PyritAttack, PyritConverter
 
 _DEFAULT_DATA = Path(__file__).resolve().parent / "data"
 
@@ -18,7 +18,8 @@ class CatalogError(ValueError):
 
 class Catalog(BaseModel):
     plugins: dict[str, Plugin]
-    strategies: dict[str, Strategy]
+    attacks: dict[str, PyritAttack]
+    converters: dict[str, PyritConverter]
     presets: dict[str, Preset]
 
     def plugins_by_group(self) -> dict[str, list[Plugin]]:
@@ -36,18 +37,18 @@ def load_catalog(data_dir: str | Path | None = None) -> Catalog:
     data_dir = Path(data_dir) if data_dir is not None else _DEFAULT_DATA
 
     plugins = {d["id"]: Plugin(**d) for d in _read(data_dir / "plugins.json")}
-    strategies = {d["id"]: Strategy(**d) for d in _read(data_dir / "strategies.json")}
+    attacks = {d["class_name"]: PyritAttack(**d) for d in _read(data_dir / "pyrit_attacks.json")}
+    converters = {
+        d["class_name"]: PyritConverter(**d) for d in _read(data_dir / "pyrit_converters.json")
+    }
     presets = {d["id"]: Preset(**d) for d in _read(data_dir / "presets.json")}
 
-    _validate(plugins, strategies, presets)
-    return Catalog(plugins=plugins, strategies=strategies, presets=presets)
+    _validate(plugins, presets)
+    return Catalog(plugins=plugins, attacks=attacks, converters=converters, presets=presets)
 
 
-def _validate(plugins, strategies, presets) -> None:
+def _validate(plugins, presets) -> None:
     for pr in presets.values():
         for pid in pr.plugins:
             if pid not in plugins:
                 raise CatalogError(f"preset '{pr.id}' references unknown plugin '{pid}'")
-        for sid in pr.recommended_strategies:
-            if sid not in strategies:
-                raise CatalogError(f"preset '{pr.id}' references unknown strategy '{sid}'")

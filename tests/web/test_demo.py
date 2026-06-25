@@ -8,7 +8,9 @@ from agentic_redteam.web import demo
 
 def test_demo_executor_is_deterministic_and_records_status():
     cat = load_catalog()
-    cfg = RunConfig(run_id="r1", plugin_ids=["pii:direct"], strategy_ids=["basic"], n=1)
+    cfg = RunConfig(
+        run_id="r1", plugin_ids=["pii:direct"], attack_class_names=["PromptSendingAttack"], n=1
+    )
     plans = resolve(cfg, cat, {"pii:direct": ["exfiltrate PII"]})
     ex = demo.demo_executor_factory(None)
     r1 = asyncio.run(ex(plans[0]))
