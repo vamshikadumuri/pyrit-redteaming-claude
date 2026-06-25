@@ -25,6 +25,7 @@
       <label class="group cursor-pointer">
         <input type="radio" name="preset" value="{{ p.id }}" class="sr-only peer"
                @change="selectedPreset = '{{ p.id }}'"
+               :disabled="mode !== 'preset'"
                {% if data.get('preset') == p.id or (loop.first and not data.get('preset')) %}checked{% endif %}>
         <div class="border-2 rounded-xl p-4 transition-all h-full
                     peer-checked:border-red-500 peer-checked:bg-red-950/20
@@ -67,6 +68,7 @@
             <label class="flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-gray-800 cursor-pointer {{ 'opacity-40 cursor-not-allowed' if not pl.runnable }}">
               <input type="checkbox" name="plugin_ids" value="{{ pl.id }}"
                      {{ 'disabled' if not pl.runnable }}
+                     :disabled="{{ 'true' if not pl.runnable else 'false' }} || mode !== 'custom'"
                      {{ 'checked' if pl.id in (data.get('plugin_ids') or []) }}
                      class="rounded border-gray-600 bg-gray-700 text-red-500 focus:ring-red-500 focus:ring-offset-gray-900">
               <span class="text-sm text-gray-300 flex-1">{{ pl.name }}</span>
@@ -101,7 +103,7 @@
           {% for a in wizard.attacks if a.turn_type == 'single_turn' %}
           <label class="flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-gray-800 cursor-pointer">
             <input type="checkbox" name="attack_ids" value="{{ a.class_name }}"
-                   {{ 'checked' if a.class_name == 'PromptSendingAttack' or a.class_name in (data.get('attack_ids') or []) }}
+                   {{ 'checked' if a.class_name in (data.get('attack_ids') or ['PromptSendingAttack']) }}
                    class="rounded border-gray-600 bg-gray-700 text-red-500 focus:ring-red-500 focus:ring-offset-gray-900">
             <span class="text-sm text-gray-300">{{ a.display_name }}</span>
           </label>
