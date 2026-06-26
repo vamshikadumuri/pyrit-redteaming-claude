@@ -65,6 +65,91 @@ def test_build_attack_multiturn_wires_adversarial_and_scorer(monkeypatch):
     assert captured["max_turns"] == plan.attack.params["max_turns"]
 
 
+# ---------------------------------------------------------------------------
+# Bug 1: build_attack must omit kwargs the constructor doesn't accept
+# ---------------------------------------------------------------------------
+
+
+def test_build_attack_omits_scoring_config_when_ctor_lacks_it(monkeypatch):
+    """BargeInAttack got 'unexpected keyword argument attack_scoring_config' in prod.
+    If the class's __init__ doesn't declare that param, build_attack must skip it."""
+    plan, _ = _plan("BargeInAttack")
+    captured = {}
+
+    class FakeBargeIn:
+        # Deliberately no attack_scoring_config, no **kw — mirrors the real ctor shape
+        def __init__(self, objective_target, attack_adversarial_config):
+            captured["objective_target"] = objective_target
+            captured["attack_adversarial_config"] = attack_adversarial_config
+
+    monkeypatch.setitem(adapter._ATTACKS, "BargeInAttack", FakeBargeIn)
+    monkeypatch.setattr(adapter, "_AttackAdversarialConfig", _FakeAdversarialConfig)
+    monkeypatch.setattr(adapter, "_AttackScoringConfig", _FakeScoringConfig)
+
+    # BargeInAttack needs adversarial — pass "ADV" so the None-guard doesn't fire
+    a = adapter.build_attack(plan, objective_target="TGT", adversarial_chat="ADV", scorer="SC")
+    assert isinstance(a, FakeBargeIn)
+    assert "attack_scoring_config" not in captured, "must not pass unknown kwarg to ctor"
+    assert captured["attack_adversarial_config"].target == "ADV"
+
+
+def test_build_attack_raises_when_multiturn_needs_adversarial_but_got_none(monkeypatch):
+    """If a multi-turn attack requires adversarial_chat but None is passed, raise ValueError
+    immediately with a clear message instead of silently constructing a broken object."""
+    plan, _ = _plan("CrescendoAttack")
+
+    class FakeCrescendo:
+        def __init__(self, **kw):
+            pass
+
+    monkeypatch.setitem(adapter._ATTACKS, "CrescendoAttack", FakeCrescendo)
+
+    with pytest.raises(ValueError, match="adversarial"):
+        adapter.build_attack(plan, objective_target="TGT", adversarial_chat=None, scorer="SC")
+
+
+# ---------------------------------------------------------------------------
+# Bug 2: TAP/PAIR need a float-scale scorer — _choose_scorer routes correctly
+# ---------------------------------------------------------------------------
+
+
+def test_choose_scorer_uses_float_scale_for_tap(monkeypatch):
+    """TAP requires a FloatScaleThresholdScorer; _choose_scorer must call
+    build_float_scale_scorer when objective_scorer_kind == 'float_scale'."""
+    plan, _ = _plan("TreeOfAttacksWithPruningAttack")
+    assert plan.attack.objective_scorer_kind == "float_scale"
+
+    monkeypatch.setattr(adapter, "build_float_scale_scorer", lambda jt: f"float:{jt}")
+    monkeypatch.setattr(adapter, "build_scorer", lambda *a, **kw: "rubric_scorer")
+
+    result = adapter._choose_scorer(plan, "judge", bindings={}, invert=True)
+    assert result == "float:judge"
+
+
+def test_choose_scorer_uses_rubric_scorer_for_standard_attacks(monkeypatch):
+    """Standard attacks (Crescendo, PromptSending etc.) use the rubric scorer path."""
+    plan, _ = _plan("CrescendoAttack")
+    assert plan.attack.objective_scorer_kind == "true_false"
+
+    monkeypatch.setattr(adapter, "build_float_scale_scorer", lambda jt: "float_scorer")
+    monkeypatch.setattr(adapter, "build_scorer", lambda *a, **kw: "rubric_scorer")
+
+    result = adapter._choose_scorer(plan, "judge", bindings={}, invert=True)
+    assert result == "rubric_scorer"
+
+
+def test_choose_scorer_uses_float_scale_for_pair(monkeypatch):
+    """PAIR also requires float-scale scorer."""
+    plan, _ = _plan("PAIRAttack")
+    assert plan.attack.objective_scorer_kind == "float_scale"
+
+    monkeypatch.setattr(adapter, "build_float_scale_scorer", lambda jt: f"float:{jt}")
+    monkeypatch.setattr(adapter, "build_scorer", lambda *a, **kw: "rubric_scorer")
+
+    result = adapter._choose_scorer(plan, "judge", bindings={}, invert=True)
+    assert result == "float:judge"
+
+
 def test_build_target_constructs_openai_chat_target(monkeypatch):
     captured = {}
 
