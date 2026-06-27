@@ -67,6 +67,10 @@ class Store:
             await self._db.execute(
                 "ALTER TABLE runs ADD COLUMN request_json TEXT NOT NULL DEFAULT ''"
             )
+        with contextlib.suppress(Exception):  # rename from old strategy_id column name
+            await self._db.execute(
+                "ALTER TABLE executions RENAME COLUMN strategy_id TO attack_class_name"
+            )
         await self._db.commit()
 
     async def _ensure_open(self) -> None:
