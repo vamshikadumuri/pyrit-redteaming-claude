@@ -68,6 +68,7 @@
     "turn_type": "multi_turn",
     "needs": ["adversarial_chat", "objective_scorer"],
     "params": {},
+    "objective_scorer_kind": "float_scale",
     "runnable": true,
     "runnable_reason": ""
   },
@@ -122,6 +123,7 @@
     "turn_type": "multi_turn",
     "needs": ["adversarial_chat", "objective_scorer"],
     "params": {},
+    "objective_scorer_kind": "float_scale",
     "runnable": true,
     "runnable_reason": ""
   }

@@ -90,6 +90,7 @@ class PyritAttack(BaseModel):
     turn_type: TurnType
     needs: list[str] = Field(default_factory=list)
     params: dict = Field(default_factory=dict)
+    objective_scorer_kind: str = "true_false"  # "true_false" | "float_scale" (TAP/PAIR)
     runnable: bool = True
     runnable_reason: str = ""
 

@@ -43,6 +43,14 @@ PARAM_DEFAULTS: dict[str, dict] = {
     "CrescendoAttack": {"max_turns": 10, "max_backtracks": 5},
 }
 
+# Attacks that require a float-scale objective scorer (e.g. FloatScaleThresholdScorer)
+# rather than the default TrueFalse scorer. TAP and PAIR use the score as a
+# pruning/ranking signal and validate the scorer type at construction time.
+SCORER_KIND_OVERRIDES: dict[str, str] = {
+    "PAIRAttack": "float_scale",
+    "TreeOfAttacksWithPruningAttack": "float_scale",
+}
+
 # Known display-name overrides (applied before suffix-stripping humanization)
 DISPLAY_OVERRIDES: dict[str, str] = {
     "TreeOfAttacksWithPruningAttack": "Tree of Attacks with Pruning (TAP)",
@@ -320,6 +328,7 @@ def build_attacks() -> list[dict]:
         }[turn_type]
 
         params = PARAM_DEFAULTS.get(name, {})
+        objective_scorer_kind = SCORER_KIND_OVERRIDES.get(name, "true_false")
 
         if turn_type == "meta":
             runnable = False
@@ -328,17 +337,19 @@ def build_attacks() -> list[dict]:
             runnable = True
             runnable_reason = ""
 
-        entries.append(
-            {
-                "class_name": name,
-                "display_name": _humanize(name, "Attack"),
-                "turn_type": turn_type,
-                "needs": needs,
-                "params": params,
-                "runnable": runnable,
-                "runnable_reason": runnable_reason,
-            }
-        )
+        entry: dict = {
+            "class_name": name,
+            "display_name": _humanize(name, "Attack"),
+            "turn_type": turn_type,
+            "needs": needs,
+            "params": params,
+        }
+        if objective_scorer_kind != "true_false":
+            # Only write non-default values to keep the JSON clean for most attacks.
+            entry["objective_scorer_kind"] = objective_scorer_kind
+        entry["runnable"] = runnable
+        entry["runnable_reason"] = runnable_reason
+        entries.append(entry)
 
     entries.sort(key=lambda e: e["class_name"])
     return entries

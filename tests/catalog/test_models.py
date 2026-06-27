@@ -47,6 +47,26 @@ def test_pyrit_attack_model():
     assert "adversarial_chat" in a.needs
 
 
+def test_pyrit_attack_objective_scorer_kind_defaults_to_true_false():
+    a = PyritAttack(
+        class_name="PromptSendingAttack",
+        display_name="Prompt Sending",
+        turn_type=TurnType.single_turn,
+    )
+    assert a.objective_scorer_kind == "true_false"
+
+
+def test_pyrit_attack_objective_scorer_kind_can_be_float_scale():
+    a = PyritAttack(
+        class_name="PAIRAttack",
+        display_name="PAIR",
+        turn_type=TurnType.multi_turn,
+        needs=["adversarial_chat", "objective_scorer"],
+        objective_scorer_kind="float_scale",
+    )
+    assert a.objective_scorer_kind == "float_scale"
+
+
 def test_pyrit_converter_model():
     c = PyritConverter(
         class_name="Base64Converter",

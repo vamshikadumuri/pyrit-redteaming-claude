@@ -4,6 +4,7 @@ Targets PyRIT 0.14.0+."""
 
 from __future__ import annotations
 
+import inspect
 import logging
 
 from pyrit.executor.attack import (
@@ -29,7 +30,7 @@ from pyrit.prompt_target import OpenAIChatTarget
 
 from agentic_redteam.config import ModelConfig
 from agentic_redteam.engine.plan import AttackPlan
-from agentic_redteam.engine.scorer import build_scorer
+from agentic_redteam.engine.scorer import build_float_scale_scorer, build_scorer
 
 logger = logging.getLogger(__name__)
 
@@ -86,21 +87,47 @@ def _build_converters(converter_class_names: list[str], *, converter_target=None
 
 def build_attack(plan: AttackPlan, *, objective_target, adversarial_chat, scorer):
     cls = _ATTACKS[plan.attack.class_name]
-    kwargs: dict = {
-        "objective_target": objective_target,
-        "attack_scoring_config": _AttackScoringConfig(objective_scorer=scorer),
-    }
+
+    # Introspect the real constructor so we never pass a kwarg the class doesn't accept.
+    # This fixes "unexpected keyword argument 'attack_scoring_config'" on BargeInAttack and
+    # any other attack whose ctor deviates from the assumed uniform contract.
+    sig_params = inspect.signature(cls.__init__).parameters
+    has_var_kw = any(p.kind is inspect.Parameter.VAR_KEYWORD for p in sig_params.values())
+
+    def _takes(name: str) -> bool:
+        return has_var_kw or name in sig_params
+
+    kwargs: dict = {"objective_target": objective_target}
+
+    if _takes("attack_scoring_config"):
+        kwargs["attack_scoring_config"] = _AttackScoringConfig(objective_scorer=scorer)
+
     if "adversarial_chat" in plan.attack.needs:
-        kwargs["attack_adversarial_config"] = _AttackAdversarialConfig(target=adversarial_chat)
-    if plan.converters:
+        if adversarial_chat is None:
+            raise ValueError(
+                f"{cls.__name__} requires an adversarial endpoint — configure one in the wizard."
+            )
+        if _takes("attack_adversarial_config"):
+            kwargs["attack_adversarial_config"] = _AttackAdversarialConfig(target=adversarial_chat)
+
+    if plan.converters and _takes("attack_converter_config"):
         built = _build_converters(
             [c.class_name for c in plan.converters],
             converter_target=adversarial_chat,
         )
         # VERIFY: exact kwarg for AttackConverterConfig in-container.
         kwargs["attack_converter_config"] = _AttackConverterConfig(request_converters=built)
+
     kwargs.update(plan.attack.params)
     return cls(**kwargs)
+
+
+def _choose_scorer(plan: AttackPlan, judge_target, *, bindings: dict, invert: bool):
+    """Route to float-scale scorer for TAP/PAIR (which require FloatScaleThresholdScorer),
+    or the standard rubric/TrueFalse scorer for all other attacks."""
+    if plan.attack.objective_scorer_kind == "float_scale":
+        return build_float_scale_scorer(judge_target)
+    return build_scorer(plan.plugin, judge_target, bindings=bindings, invert=invert)
 
 
 async def execute_plan(
@@ -114,7 +141,7 @@ async def execute_plan(
     objective_target = build_target(target_config)
     judge_target = build_target(judge_config)
     adversarial_chat = build_target(adversarial_config) if adversarial_config else None
-    scorer = build_scorer(plan.plugin, judge_target, bindings=plan.bindings, invert=plan.invert)
+    scorer = _choose_scorer(plan, judge_target, bindings=plan.bindings, invert=plan.invert)
     attack = build_attack(
         plan, objective_target=objective_target, adversarial_chat=adversarial_chat, scorer=scorer
     )

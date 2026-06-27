@@ -19,6 +19,20 @@ def test_loads_shipped_catalog():
     assert "hijacking" in cat.presets["owasp_agentic"].plugins
 
 
+def test_pair_and_tap_have_float_scale_scorer_kind():
+    cat = load_catalog()
+    assert cat.attacks["PAIRAttack"].objective_scorer_kind == "float_scale"
+    assert cat.attacks["TreeOfAttacksWithPruningAttack"].objective_scorer_kind == "float_scale"
+
+
+def test_other_attacks_default_to_true_false_scorer_kind():
+    cat = load_catalog()
+    for name in ("CrescendoAttack", "PromptSendingAttack", "RedTeamingAttack", "BargeInAttack"):
+        assert (
+            cat.attacks[name].objective_scorer_kind == "true_false"
+        ), f"{name} should default to 'true_false'"
+
+
 def test_plugins_by_group_helper():
     cat = load_catalog()
     groups = cat.plugins_by_group()
