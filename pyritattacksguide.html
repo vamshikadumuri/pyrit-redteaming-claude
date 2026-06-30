@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PyRIT 0.14.0 Attacks — A Beginner's Schematic</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#ECEFF3; --paper-2:#E2E7ED; --panel:#0E1B27; --panel-2:#13283A;
+    --ink:#15242F; --ink-soft:#54636F; --line:#C6D1DB; --line-soft:#D7DEE6;
+    --attack:#DD6B3D; --attack-deep:#B8501F;
+    --safe:#1C9C8C; --safe-deep:#0E7468;
+    --neutral:#3F5C8A; --neutral-soft:#6E83AD;
+    --code-str:#E8A87C; --code-kw:#6FC7BB; --code-com:#5E7387; --code-fn:#9DB7E0; --code-base:#D5DEE6;
+    --maxw:1080px;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0; background:var(--paper); color:var(--ink);
+    font-family:"IBM Plex Sans",system-ui,sans-serif; font-size:17px; line-height:1.62;
+    -webkit-font-smoothing:antialiased;
+    background-image:linear-gradient(var(--line-soft) 1px,transparent 1px),linear-gradient(90deg,var(--line-soft) 1px,transparent 1px);
+    background-size:34px 34px; background-position:-1px -1px;
+  }
+  .wrap{max-width:var(--maxw); margin:0 auto; padding:0 28px}
+
+  /* top nav */
+  nav.top{
+    position:sticky; top:0; z-index:50; backdrop-filter:saturate(140%) blur(8px);
+    background:rgba(236,239,243,.86); border-bottom:1px solid var(--line);
+  }
+  nav.top .wrap{display:flex; align-items:center; gap:22px; height:54px}
+  nav.top .brand{font-family:"IBM Plex Mono",monospace; font-weight:600; font-size:13px; letter-spacing:.06em; color:var(--ink)}
+  nav.top .brand b{color:var(--attack-deep)}
+  nav.top .links{margin-left:auto; display:flex; gap:18px; flex-wrap:wrap}
+  nav.top a{font-family:"IBM Plex Mono",monospace; font-size:12px; letter-spacing:.04em; color:var(--ink-soft); text-decoration:none; text-transform:uppercase}
+  nav.top a:hover{color:var(--attack-deep)}
+  @media(max-width:820px){nav.top .links{display:none}}
+
+  /* hero */
+  header.hero{padding:64px 0 30px; border-bottom:1px solid var(--line)}
+  .eyebrow{font-family:"IBM Plex Mono",monospace; font-size:12.5px; letter-spacing:.22em; text-transform:uppercase; color:var(--attack-deep); margin:0 0 18px}
+  h1{font-family:"Space Grotesk",sans-serif; font-weight:700; font-size:clamp(34px,6vw,62px); line-height:1.02; letter-spacing:-.02em; margin:0 0 18px; color:var(--panel)}
+  h1 .turn{color:var(--attack)}
+  .lede{font-size:19px; max-width:680px; color:var(--ink-soft); margin:0 0 26px}
+  .badges{display:flex; gap:10px; flex-wrap:wrap; margin-bottom:8px}
+  .badge{font-family:"IBM Plex Mono",monospace; font-size:12px; letter-spacing:.04em; padding:6px 11px; border:1px solid var(--line); border-radius:2px; background:#fff; color:var(--ink-soft)}
+  .badge b{color:var(--safe-deep)}
+
+  section{padding:54px 0; border-bottom:1px solid var(--line)}
+  .sec-head{display:flex; align-items:baseline; gap:16px; margin-bottom:8px}
+  .sec-num{font-family:"IBM Plex Mono",monospace; font-weight:600; font-size:13px; color:var(--attack-deep); letter-spacing:.1em; padding-top:6px}
+  h2{font-family:"Space Grotesk",sans-serif; font-weight:600; font-size:clamp(24px,3.4vw,34px); letter-spacing:-.01em; margin:0; color:var(--panel)}
+  h3{font-family:"Space Grotesk",sans-serif; font-weight:600; font-size:19px; margin:30px 0 10px; color:var(--panel)}
+  .sub{color:var(--ink-soft); max-width:720px; margin:6px 0 26px}
+  p{margin:0 0 16px} p:last-child{margin-bottom:0}
+  strong{font-weight:600}
+  code.inl{font-family:"IBM Plex Mono",monospace; font-size:.86em; background:var(--paper-2); border:1px solid var(--line-soft); border-radius:3px; padding:1px 6px; color:var(--neutral)}
+  a.link{color:var(--attack-deep)}
+
+  /* schematic figure shell */
+  figure.schem{margin:8px 0 6px; padding:22px; background:#fff; border:1px solid var(--line); border-radius:4px; overflow-x:auto}
+  figure.schem svg{display:block; margin:0 auto; max-width:100%; height:auto}
+  figcaption{font-family:"IBM Plex Mono",monospace; font-size:11.5px; letter-spacing:.05em; color:var(--ink-soft); text-transform:uppercase; margin-top:14px; text-align:center}
+  .legend{display:flex; gap:20px; justify-content:center; flex-wrap:wrap; margin-top:10px; font-family:"IBM Plex Mono",monospace; font-size:11.5px; color:var(--ink-soft)}
+  .legend span{display:inline-flex; align-items:center; gap:7px}
+  .swatch{width:13px; height:13px; border-radius:2px; display:inline-block}
+
+  /* svg shared text */
+  svg text{font-family:"IBM Plex Mono",monospace}
+  .nlabel{font-family:"IBM Plex Sans",sans-serif !important; font-weight:600}
+
+  /* building-block table */
+  .blocks{display:grid; grid-template-columns:1fr; gap:0; border:1px solid var(--line); border-radius:4px; overflow:hidden; margin-top:26px; background:#fff}
+  .brow{display:grid; grid-template-columns:200px 1fr 130px; gap:0; border-top:1px solid var(--line-soft)}
+  .brow:first-child{border-top:0}
+  .brow>div{padding:14px 18px}
+  .brow .bk{font-family:"Space Grotesk",sans-serif; font-weight:600; color:var(--panel); border-right:1px solid var(--line-soft)}
+  .brow .bd{color:var(--ink-soft); font-size:15.5px}
+  .brow .br{border-left:1px solid var(--line-soft); font-family:"IBM Plex Mono",monospace; font-size:12px; display:flex; align-items:center}
+  .pill{padding:3px 9px; border-radius:20px; font-size:11px; font-weight:600; letter-spacing:.02em; white-space:nowrap}
+  .pill.req{background:rgba(221,107,61,.13); color:var(--attack-deep)}
+  .pill.opt{background:rgba(28,156,140,.14); color:var(--safe-deep)}
+  @media(max-width:720px){.brow{grid-template-columns:1fr}.brow .bk,.brow .bd,.brow .br{border:0;border-top:1px solid var(--line-soft)} .brow .bk{padding-bottom:2px}}
+
+  /* two-column attack split */
+  .split{display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-top:24px}
+  @media(max-width:720px){.split{grid-template-columns:1fr}}
+  .col{border:1px solid var(--line); border-radius:4px; background:#fff; overflow:hidden}
+  .col header{padding:13px 18px; font-family:"IBM Plex Mono",monospace; font-size:12px; letter-spacing:.05em; text-transform:uppercase; color:#fff}
+  .col.static header{background:var(--safe-deep)}
+  .col.adaptive header{background:var(--attack-deep)}
+  .col ul{list-style:none; margin:0; padding:10px 0}
+  .col li{padding:7px 18px; font-family:"IBM Plex Mono",monospace; font-size:13.5px; color:var(--panel); display:flex; align-items:center; gap:10px}
+  .col li::before{content:""; width:6px; height:6px; border-radius:50%; flex:none}
+  .col.static li::before{background:var(--safe)}
+  .col.adaptive li::before{background:var(--attack)}
+  .col .note{padding:8px 18px 14px; font-family:"IBM Plex Sans"; font-size:13px; color:var(--ink-soft)}
+
+  /* catalog */
+  .fam{margin-top:30px}
+  .fam-tag{display:inline-flex; align-items:center; gap:9px; font-family:"IBM Plex Mono",monospace; font-size:12px; letter-spacing:.05em; text-transform:uppercase; color:var(--panel); margin-bottom:12px}
+  .fam-tag .dot{width:11px;height:11px;border-radius:2px}
+  table.cat{width:100%; border-collapse:collapse; background:#fff; border:1px solid var(--line); border-radius:4px; overflow:hidden; font-size:15px}
+  table.cat th{font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.06em; text-transform:uppercase; text-align:left; color:var(--ink-soft); padding:11px 16px; border-bottom:1px solid var(--line); background:var(--paper-2); font-weight:600}
+  table.cat td{padding:13px 16px; border-bottom:1px solid var(--line-soft); vertical-align:top}
+  table.cat tr:last-child td{border-bottom:0}
+  table.cat td.name{font-family:"IBM Plex Mono",monospace; font-size:13px; font-weight:600; color:var(--attack-deep); white-space:nowrap}
+  table.cat td.does{color:var(--ink); width:38%}
+  table.cat td.when{color:var(--ink-soft); width:40%; font-size:14.5px}
+  @media(max-width:760px){table.cat,table.cat tbody,table.cat tr,table.cat td{display:block;width:100% !important} table.cat thead{display:none} table.cat td{border:0;padding:4px 16px} table.cat td.name{padding-top:14px} table.cat tr{border-bottom:1px solid var(--line); padding-bottom:10px}}
+
+  /* callout */
+  .callout{display:flex; gap:14px; padding:16px 18px; border-radius:4px; margin:22px 0 0; font-size:15px}
+  .callout.warn{background:rgba(221,107,61,.09); border:1px solid rgba(221,107,61,.3)}
+  .callout.info{background:rgba(63,92,138,.08); border:1px solid rgba(63,92,138,.26)}
+  .callout .ic{font-family:"IBM Plex Mono",monospace; font-weight:700; flex:none}
+  .callout.warn .ic{color:var(--attack-deep)}
+  .callout.info .ic{color:var(--neutral)}
+
+  /* code */
+  .code{background:var(--panel); border-radius:5px; margin:18px 0; overflow:hidden; border:1px solid #1d3247}
+  .code .bar{display:flex; align-items:center; gap:9px; padding:9px 15px; border-bottom:1px solid #1d3247; background:var(--panel-2)}
+  .code .bar .label{font-family:"IBM Plex Mono",monospace; font-size:11.5px; letter-spacing:.05em; color:#8aa0b2; text-transform:uppercase}
+  .code .bar .tag{margin-left:auto; font-family:"IBM Plex Mono",monospace; font-size:10.5px; padding:2px 8px; border-radius:20px}
+  .code .bar .tag.attLLM{background:rgba(221,107,61,.2); color:#f0a578}
+  .code .bar .tag.noLLM{background:rgba(28,156,140,.2); color:#5fd3c4}
+  .code pre{margin:0; padding:16px 18px; overflow-x:auto; font-family:"IBM Plex Mono",monospace; font-size:13.5px; line-height:1.7; color:var(--code-base)}
+  .code .k{color:var(--code-kw)} .code .s{color:var(--code-str)} .code .c{color:var(--code-com)} .code .f{color:var(--code-fn)} .code .n{color:#c9a4e8}
+
+  /* glossary */
+  .gloss{columns:2; column-gap:30px; margin-top:22px}
+  @media(max-width:680px){.gloss{columns:1}}
+  .gloss dl{break-inside:avoid; margin:0 0 16px}
+  .gloss dt{font-family:"IBM Plex Mono",monospace; font-size:13.5px; font-weight:600; color:var(--panel)}
+  .gloss dd{margin:3px 0 0; color:var(--ink-soft); font-size:14.5px}
+
+  /* quick ref */
+  table.qr{width:100%; border-collapse:collapse; background:var(--panel); border-radius:5px; overflow:hidden; margin-top:14px; font-family:"IBM Plex Mono",monospace; font-size:13px}
+  table.qr th{text-align:left; padding:11px 14px; color:#8aa0b2; font-size:10.5px; letter-spacing:.06em; text-transform:uppercase; border-bottom:1px solid #20384e}
+  table.qr td{padding:9px 14px; border-bottom:1px solid #182d40; color:var(--code-base)}
+  table.qr tr:last-child td{border-bottom:0}
+  table.qr td.y{color:#f0a578} table.qr td.no{color:#5fd3c4}
+  table.qr td.audio{color:#c9a4e8}
+
+  footer{padding:40px 0 70px}
+  footer .fnote{font-family:"IBM Plex Mono",monospace; font-size:12px; color:var(--ink-soft); letter-spacing:.03em}
+
+  /* reveal */
+  .reveal{opacity:0; transform:translateY(14px); transition:opacity .6s ease, transform .6s ease}
+  .reveal.in{opacity:1; transform:none}
+  @media(prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none;transition:none}}
+  :focus-visible{outline:2px solid var(--attack); outline-offset:2px}
+</style>
+</head>
+<body>
+
+<nav class="top">
+  <div class="wrap">
+    <span class="brand">PyRIT<b>·</b>0.14.0</span>
+    <div class="links">
+      <a href="#blocks">Blocks</a>
+      <a href="#turns">Turns</a>
+      <a href="#decide">Key Question</a>
+      <a href="#catalog">Catalog</a>
+      <a href="#modality">Modality</a>
+      <a href="#examples">Examples</a>
+      <a href="#ladder">Pick One</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <p class="eyebrow">Red-Teaming Toolkit · Field Guide</p>
+    <h1>A beginner's schematic of PyRIT <span class="turn">attacks</span></h1>
+    <p class="lede">PyRIT tries to make an AI model misbehave on purpose, so you can find the weakness before someone else does. This guide wires up every attack in version 0.14.0 — what each one is, when to reach for it, and code you can run.</p>
+    <div class="badges">
+      <span class="badge"><b>✓</b> verified against pyrit==0.14.0</span>
+      <span class="badge"><b>✓</b> examples checked against source signatures</span>
+      <span class="badge">audience: new to PyRIT</span>
+    </div>
+  </div>
+</header>
+
+<!-- 01 BUILDING BLOCKS -->
+<section id="blocks">
+  <div class="wrap reveal">
+    <div class="sec-head"><span class="sec-num">01</span><h2>The four building blocks</h2></div>
+    <p class="sub">Almost every attack is wired from the same four parts. Learn these and the rest of the framework falls into place. The one that trips up beginners: the <em>attacker LLM</em> and the <em>target</em> are two different models — one writes the attacks, the other is the system under test.</p>
+
+    <figure class="schem">
+      <svg viewBox="0 0 880 300" role="img" aria-label="Schematic: an attack wires together objective target, adversarial chat, scorer and converter">
+        <!-- central ATTACK node -->
+        <rect x="360" y="22" width="160" height="52" rx="5" fill="#0E1B27"/>
+        <text x="440" y="46" text-anchor="middle" fill="#fff" font-size="15" font-weight="600" class="nlabel">ATTACK</text>
+        <text x="440" y="63" text-anchor="middle" fill="#8aa0b2" font-size="10.5">the strategy</text>
+
+        <!-- connectors -->
+        <g stroke="#C6D1DB" stroke-width="1.5" fill="none">
+          <path d="M400 74 C400 120, 150 110, 130 150"/>
+          <path d="M430 74 C430 120, 360 120, 350 150"/>
+          <path d="M450 74 C450 120, 540 120, 545 150"/>
+          <path d="M480 74 C480 120, 740 110, 760 150"/>
+        </g>
+
+        <!-- target (required) -->
+        <rect x="40" y="150" width="180" height="118" rx="5" fill="#fff" stroke="#B8501F" stroke-width="2"/>
+        <rect x="40" y="150" width="180" height="26" rx="5" fill="#DD6B3D"/>
+        <text x="130" y="168" text-anchor="middle" fill="#fff" font-size="12" font-weight="600" class="nlabel">OBJECTIVE TARGET</text>
+        <text x="130" y="200" text-anchor="middle" fill="#15242F" font-size="11">the model you are</text>
+        <text x="130" y="216" text-anchor="middle" fill="#15242F" font-size="11">TESTING (your gateway)</text>
+        <text x="130" y="248" text-anchor="middle" fill="#B8501F" font-size="10.5" font-weight="600">ALWAYS REQUIRED</text>
+
+        <!-- adversarial chat -->
+        <rect x="260" y="150" width="180" height="118" rx="5" fill="#fff" stroke="#B8501F" stroke-width="2"/>
+        <rect x="260" y="150" width="180" height="26" rx="5" fill="#DD6B3D"/>
+        <text x="350" y="168" text-anchor="middle" fill="#fff" font-size="12" font-weight="600" class="nlabel">ADVERSARIAL CHAT</text>
+        <text x="350" y="200" text-anchor="middle" fill="#15242F" font-size="11">a 2nd LLM that</text>
+        <text x="350" y="216" text-anchor="middle" fill="#15242F" font-size="11">WRITES the attacks</text>
+        <text x="350" y="248" text-anchor="middle" fill="#B8501F" font-size="10.5" font-weight="600">ADAPTIVE ATTACKS ONLY</text>
+
+        <!-- scorer -->
+        <rect x="460" y="150" width="170" height="118" rx="5" fill="#fff" stroke="#0E7468" stroke-width="2"/>
+        <rect x="460" y="150" width="170" height="26" rx="5" fill="#1C9C8C"/>
+        <text x="545" y="168" text-anchor="middle" fill="#fff" font-size="12" font-weight="600" class="nlabel">SCORER</text>
+        <text x="545" y="200" text-anchor="middle" fill="#15242F" font-size="11">auto-judge: did we</text>
+        <text x="545" y="216" text-anchor="middle" fill="#15242F" font-size="11">succeed? did it refuse?</text>
+        <text x="545" y="248" text-anchor="middle" fill="#0E7468" font-size="10.5" font-weight="600">OPTIONAL · RECOMMENDED</text>
+
+        <!-- converter -->
+        <rect x="660" y="150" width="180" height="118" rx="5" fill="#fff" stroke="#0E7468" stroke-width="2"/>
+        <rect x="660" y="150" width="180" height="26" rx="5" fill="#1C9C8C"/>
+        <text x="750" y="168" text-anchor="middle" fill="#fff" font-size="12" font-weight="600" class="nlabel">CONVERTER</text>
+        <text x="750" y="200" text-anchor="middle" fill="#15242F" font-size="11">transforms the prompt</text>
+        <text x="750" y="216" text-anchor="middle" fill="#15242F" font-size="11">(e.g. text → audio)</text>
+        <text x="750" y="248" text-anchor="middle" fill="#0E7468" font-size="10.5" font-weight="600">OPTIONAL</text>
+      </svg>
+      <div class="legend">
+        <span><i class="swatch" style="background:#DD6B3D"></i> offense / required-for-adaptive</span>
+        <span><i class="swatch" style="background:#1C9C8C"></i> optional helper</span>
+      </div>
+      <figcaption>Fig. 01 — how one attack is assembled</figcaption>
+    </figure>
+
+    <div class="blocks">
+      <div class="brow"><div class="bk">Objective target</div><div class="bd">The model under test — the thing you're trying to break.</div><div class="br"><span class="pill req">Always</span></div></div>
+      <div class="brow"><div class="bk">Adversarial chat</div><div class="bd">A second LLM that generates attack prompts for you. Often an uncensored model, so it's willing to play the adversary.</div><div class="br"><span class="pill req">Adaptive only</span></div></div>
+      <div class="brow"><div class="bk">Scorer</div><div class="bd">Reads the reply and decides "objective achieved?" or "did it refuse?" — so you don't grade by hand.</div><div class="br"><span class="pill opt">Optional</span></div></div>
+      <div class="brow"><div class="bk">Converter</div><div class="bd">A transform applied before sending — flip the letters, encode, or render to audio/image.</div><div class="br"><span class="pill opt">Optional</span></div></div>
+    </div>
+    <div class="callout info"><span class="ic">i</span><div>In 0.14.0 these arrive as small config objects: <code class="inl">AttackAdversarialConfig(target=...)</code>, <code class="inl">AttackScoringConfig(objective_scorer=..., refusal_scorer=...)</code>, and <code class="inl">AttackConverterConfig(request_converters=[...])</code>.</div></div>
+  </div>
+</section>
+
+<!-- 02 TURNS -->
+<section id="turns">
+  <div class="wrap reveal">
+    <div class="sec-head"><span class="sec-num">02</span><h2>Single-turn vs. multi-turn</h2></div>
+    <p class="sub">The first fork: does the attack fire <em>one</em> message, or hold a back-and-forth that adapts to each reply?</p>
+
+    <figure class="schem">
+      <svg viewBox="0 0 880 250" role="img" aria-label="Single-turn sends one message; multi-turn holds an adapting conversation">
+        <!-- single -->
+        <text x="40" y="34" fill="#0E7468" font-size="12" font-weight="600">SINGLE-TURN</text>
+        <rect x="40" y="54" width="120" height="40" rx="4" fill="#fff" stroke="#C6D1DB"/>
+        <text x="100" y="79" text-anchor="middle" fill="#15242F" font-size="12">You</text>
+        <rect x="300" y="54" width="120" height="40" rx="4" fill="#0E1B27"/>
+        <text x="360" y="79" text-anchor="middle" fill="#fff" font-size="12">Target</text>
+        <line x1="160" y1="68" x2="296" y2="68" stroke="#1C9C8C" stroke-width="1.5" marker-end="url(#ar-s)"/>
+        <line x1="300" y1="82" x2="164" y2="82" stroke="#C6D1DB" stroke-width="1.5" marker-end="url(#ar-g)"/>
+        <text x="230" y="62" text-anchor="middle" fill="#0E7468" font-size="10">prompt</text>
+        <text x="230" y="98" text-anchor="middle" fill="#5A6B7E" font-size="10">reply</text>
+        <text x="40" y="128" fill="#5A6B7E" font-size="11.5">One shot. Cheap and fast — good for sweeps &amp; known tricks.</text>
+
+        <!-- divider -->
+        <line x1="40" y1="150" x2="500" y2="150" stroke="#D7DEE6" stroke-width="1"/>
+
+        <!-- multi -->
+        <text x="40" y="180" fill="#B8501F" font-size="12" font-weight="600">MULTI-TURN</text>
+        <g font-size="10" fill="#5A6B7E">
+          <rect x="40" y="196" width="90" height="30" rx="4" fill="#fff" stroke="#C6D1DB"/><text x="85" y="215" text-anchor="middle">You ▸ t1</text>
+          <rect x="180" y="196" width="90" height="30" rx="4" fill="#fff" stroke="#C6D1DB"/><text x="225" y="215" text-anchor="middle">You ▸ t2</text>
+          <rect x="320" y="196" width="90" height="30" rx="4" fill="#fff" stroke="#C6D1DB"/><text x="365" y="215" text-anchor="middle">You ▸ t3</text>
+        </g>
+        <g stroke="#DD6B3D" stroke-width="1.5" fill="none">
+          <line x1="130" y1="211" x2="176" y2="211" marker-end="url(#ar-a)"/>
+          <line x1="270" y1="211" x2="316" y2="211" marker-end="url(#ar-a)"/>
+          <line x1="410" y1="211" x2="456" y2="211" marker-end="url(#ar-a)"/>
+        </g>
+        <text x="500" y="215" fill="#B8501F" font-size="11">… until success</text>
+        <text x="180" y="245" fill="#5A6B7E" font-size="11.5">Each turn adapts to the last reply. Stronger on defended models — but costs more calls and usually needs an attacker LLM.</text>
+
+        <defs>
+          <marker id="ar-s" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6Z" fill="#1C9C8C"/></marker>
+          <marker id="ar-g" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6Z" fill="#C6D1DB"/></marker>
+          <marker id="ar-a" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6Z" fill="#DD6B3D"/></marker>
+        </defs>
+      </svg>
+      <figcaption>Fig. 02 — message pattern</figcaption>
+    </figure>
+  </div>
+</section>
+
+<!-- 03 KEY QUESTION -->
+<section id="decide">
+  <div class="wrap reveal">
+    <div class="sec-head"><span class="sec-num">03</span><h2>The question that sets up everything</h2></div>
+    <p class="sub">"Do I need an attacker LLM?" decides how much you have to configure. If an attack is on the right, you <em>must</em> pass <code class="inl">attack_adversarial_config</code> — the single most common reason a first script fails to construct.</p>
+
+    <figure class="schem">
+      <svg viewBox="0 0 880 220" role="img" aria-label="Decision: static attacks need no attacker LLM; adaptive attacks require one">
+        <rect x="300" y="16" width="280" height="46" rx="5" fill="#0E1B27"/>
+        <text x="440" y="37" text-anchor="middle" fill="#fff" font-size="12.5" class="nlabel" font-weight="600">Should the attack IMPROVISE,</text>
+        <text x="440" y="53" text-anchor="middle" fill="#8aa0b2" font-size="11">reacting to the model's replies?</text>
+
+        <path d="M360 62 C360 95, 200 90, 190 110" stroke="#1C9C8C" stroke-width="1.5" fill="none"/>
+        <path d="M520 62 C520 95, 680 90, 690 110" stroke="#DD6B3D" stroke-width="1.5" fill="none"/>
+        <text x="250" y="98" fill="#0E7468" font-size="12" font-weight="600">NO</text>
+        <text x="612" y="98" fill="#B8501F" font-size="12" font-weight="600">YES</text>
+
+        <rect x="40" y="110" width="300" height="92" rx="5" fill="#fff" stroke="#0E7468" stroke-width="1.5"/>
+        <text x="56" y="132" fill="#0E7468" font-size="12" font-weight="600">STATIC / SCRIPTED — no attacker LLM</text>
+        <text x="56" y="153" fill="#15242F" font-size="11.5" font-family="IBM Plex Mono">PromptSending · FlipAttack</text>
+        <text x="56" y="171" fill="#15242F" font-size="11.5" font-family="IBM Plex Mono">ManyShotJailbreak · SkeletonKey</text>
+        <text x="56" y="189" fill="#15242F" font-size="11.5" font-family="IBM Plex Mono">MultiPromptSending · ChunkedRequest</text>
+
+        <rect x="540" y="110" width="300" height="92" rx="5" fill="#fff" stroke="#B8501F" stroke-width="1.5"/>
+        <text x="556" y="132" fill="#B8501F" font-size="12" font-weight="600">ADAPTIVE — attacker LLM required</text>
+        <text x="556" y="153" fill="#15242F" font-size="11.5" font-family="IBM Plex Mono">RedTeaming · Crescendo</text>
+        <text x="556" y="171" fill="#15242F" font-size="11.5" font-family="IBM Plex Mono">TAP · PAIR</text>
+        <text x="556" y="189" fill="#15242F" font-size="11.5" font-family="IBM Plex Mono">ContextCompliance · RolePlay</text>
+      </svg>
+      <figcaption>Fig. 03 — the configuration fork</figcaption>
+    </figure>
+
+    <div class="split">
+      <div class="col static">
+        <header>No attacker LLM — you supply the prompts</header>
+        <ul>
+          <li>PromptSendingAttack</li><li>FlipAttack</li><li>ManyShotJailbreakAttack</li>
+          <li>SkeletonKeyAttack</li><li>MultiPromptSendingAttack</li><li>ChunkedRequestAttack</li>
+        </ul>
+      </div>
+      <div class="col adaptive">
+        <header>Attacker LLM required — it improvises</header>
+        <ul>
+          <li>RedTeamingAttack</li><li>CrescendoAttack</li><li>TreeOfAttacksWithPruning (TAP)</li>
+          <li>PAIRAttack</li><li>ContextComplianceAttack</li><li>RolePlayAttack</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 04 CATALOG -->
+<section id="catalog">
+  <div class="wrap reveal">
+    <div class="sec-head"><span class="sec-num">04</span><h2>The full attack catalog</h2></div>
+    <p class="sub">Grouped by family. One line on what it does, one line on when it's the right call.</p>
+
+    <div class="fam">
+      <div class="fam-tag"><span class="dot" style="background:#1C9C8C"></span>Single-turn · static (no attacker LLM)</div>
+      <table class="cat">
+        <thead><tr><th>Attack</th><th>What it does</th><th>Prefer it when…</th></tr></thead>
+        <tbody>
+          <tr><td class="name">PromptSendingAttack</td><td class="does">Sends your objective directly, optionally with converters and a scorer. The baseline.</td><td class="when">Running a control or coverage sweep, or testing converters. Always start here.</td></tr>
+          <tr><td class="name">FlipAttack</td><td class="does">Adds a system prompt telling the model to "un-flip" reversed text, smuggling the request past keyword filters.</td><td class="when">Checking whether guardrails lean on simple surface-string matching.</td></tr>
+          <tr><td class="name">ManyShotJailbreakAttack</td><td class="does">Packs many fake "user asks / assistant complies" examples into one prompt to exploit in-context learning.</td><td class="when">Testing long-context models; probing safety decay from in-context examples. Tune <code class="inl">example_count</code>.</td></tr>
+          <tr><td class="name">SkeletonKeyAttack</td><td class="does">Prepends a fixed "augment your behaviour, don't refuse, just add a warning" preamble.</td><td class="when">You want a cheap, deterministic, well-known technique as a regression baseline.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="fam">
+      <div class="fam-tag"><span class="dot" style="background:#DD6B3D"></span>Single-turn · adaptive (attacker LLM required)</div>
+      <table class="cat">
+        <thead><tr><th>Attack</th><th>What it does</th><th>Prefer it when…</th></tr></thead>
+        <tbody>
+          <tr><td class="name">ContextComplianceAttack</td><td class="does">The attacker LLM fabricates a fake earlier assistant turn, so the model "continues" into compliance.</td><td class="when">The target accepts caller-supplied conversation history (common on agent / API surfaces).</td></tr>
+          <tr><td class="name">RolePlayAttack</td><td class="does">The attacker LLM reframes the objective inside a persona or scenario, loaded from a definition file.</td><td class="when">You want framing-based refusal bypass without paying for a full multi-turn loop.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="fam">
+      <div class="fam-tag"><span class="dot" style="background:#DD6B3D"></span>Multi-turn · adaptive (attacker LLM required)</div>
+      <table class="cat">
+        <thead><tr><th>Attack</th><th>What it does</th><th>Prefer it when…</th></tr></thead>
+        <tbody>
+          <tr><td class="name">RedTeamingAttack</td><td class="does">The generic goal-directed conversation. The attacker LLM steers each turn toward the objective.</td><td class="when">Your default multi-turn workhorse when no specific escalation pattern is needed.</td></tr>
+          <tr><td class="name">CrescendoAttack</td><td class="does">Escalates gradually over benign-seeming turns, and can <em>backtrack</em> when the model resists.</td><td class="when">A hard objective that fails single-turn; showing the target lacks conversation-level pattern detection.</td></tr>
+          <tr><td class="name">TreeOfAttacksWithPruningAttack</td><td class="does">Explores many attack branches as a tree, pruning weak / off-topic paths. Highest success, highest cost.</td><td class="when">The objective is stubborn and the query budget is justified. Tune width / depth / branching.</td></tr>
+          <tr><td class="name">PAIRAttack</td><td class="does">Iterative refinement of a single attack line — like TAP without the pruning machinery.</td><td class="when">You want refinement lighter and cheaper than full TAP.</td></tr>
+          <tr><td class="name">MultiPromptSendingAttack</td><td class="does">Sends a fixed, ordered list of prompts you authored. Attacker LLM is <em>optional</em> here.</td><td class="when">You've scripted the sequence yourself and don't need an LLM improvising.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="fam">
+      <div class="fam-tag"><span class="dot" style="background:#3F5C8A"></span>Compound &amp; streaming</div>
+      <table class="cat">
+        <thead><tr><th>Attack</th><th>What it does</th><th>Prefer it when…</th></tr></thead>
+        <tbody>
+          <tr><td class="name">SequentialAttack</td><td class="does">Chains child attacks under a completion policy (e.g. <code class="inl">FIRST_SUCCESS</code>): cheap ones first, expensive ones only if needed.</td><td class="when">Running a cost-controlled escalation ladder across many objectives.</td></tr>
+          <tr><td class="name">ChunkedRequestAttack</td><td class="does">Splits one request across several chunked messages.</td><td class="when">The target or its filter inspects each message individually, not the whole.</td></tr>
+          <tr><td class="name">BargeInAttack</td><td class="does">Drives a live audio session and interrupts ("barges in") over streaming voice. Needs a <code class="inl">RealtimeTarget</code>.</td><td class="when">Testing a real-time / streaming <em>voice</em> system specifically (see §05).</td></tr>
+        </tbody>
+      </table>
+      <div class="callout info"><span class="ic">i</span><div><strong>Helper, not an attack:</strong> <code class="inl">generate_simulated_conversation_async</code> synthesizes fake conversation history you can prepend to a real attack. It sets the stage; it doesn't pursue an objective.</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- 05 MODALITY -->
+<section id="modality">
+  <div class="wrap reveal">
+    <div class="sec-head"><span class="sec-num">05</span><h2>Text, audio, or image?</h2></div>
+    <p class="sub">Mostly text — but not entirely. Three tiers, and the distinction matters if you test voice or vision systems.</p>
+
+    <figure class="schem">
+      <svg viewBox="0 0 880 250" role="img" aria-label="Three modality tiers: native audio, text-logic with any-modality delivery, and pure text">
+        <!-- tier 1 -->
+        <rect x="40" y="20" width="800" height="58" rx="5" fill="#fff" stroke="#3F5C8A" stroke-width="1.5"/>
+        <text x="58" y="42" fill="#3F5C8A" font-size="12" font-weight="600">TIER 1 · NATIVELY NON-TEXT</text>
+        <text x="58" y="64" fill="#15242F" font-size="12.5"><tspan font-family="IBM Plex Mono" fill="#B8501F">BargeInAttack</tspan> → operates on raw audio byte streams over a live RealtimeTarget. No text at the attack layer.</text>
+
+        <!-- tier 2 -->
+        <rect x="40" y="90" width="800" height="92" rx="5" fill="#fff" stroke="#0E7468" stroke-width="1.5"/>
+        <text x="58" y="112" fill="#0E7468" font-size="12" font-weight="600">TIER 2 · TEXT LOGIC, ANY-MODALITY DELIVERY</text>
+        <text x="58" y="133" fill="#15242F" font-size="12">Every other attack <tspan font-weight="600">thinks</tspan> in text — but a CONVERTER can transform the payload before it lands:</text>
+        <g font-family="IBM Plex Mono" font-size="11">
+          <rect x="58" y="146" width="150" height="24" rx="3" fill="#ECEFF3" stroke="#C6D1DB"/><text x="133" y="162" text-anchor="middle" fill="#15242F">"How do I …"</text>
+          <line x1="208" y1="158" x2="270" y2="158" stroke="#1C9C8C" stroke-width="1.5" marker-end="url(#ar-a2)"/>
+          <rect x="272" y="146" width="180" height="24" rx="3" fill="#ECEFF3" stroke="#C6D1DB"/><text x="362" y="162" text-anchor="middle" fill="#0E7468">text→audio converter</text>
+          <line x1="452" y1="158" x2="514" y2="158" stroke="#1C9C8C" stroke-width="1.5" marker-end="url(#ar-a2)"/>
+          <rect x="516" y="146" width="120" height="24" rx="3" fill="#0E1B27"/><text x="576" y="162" text-anchor="middle" fill="#fff">speech.wav</text>
+          <line x1="636" y1="158" x2="698" y2="158" stroke="#1C9C8C" stroke-width="1.5" marker-end="url(#ar-a2)"/>
+          <rect x="700" y="146" width="100" height="24" rx="3" fill="#DD6B3D"/><text x="750" y="162" text-anchor="middle" fill="#fff">Target</text>
+        </g>
+
+        <!-- tier 3 -->
+        <rect x="40" y="194" width="800" height="46" rx="5" fill="#fff" stroke="#C6D1DB" stroke-width="1.5"/>
+        <text x="58" y="214" fill="#5A6B7E" font-size="12" font-weight="600">TIER 3 · PURE-TEXT LOGIC</text>
+        <text x="58" y="232" fill="#15242F" font-size="12"><tspan font-family="IBM Plex Mono">FlipAttack · ManyShot · SkeletonKey</tspan> — the technique only makes sense as text.</text>
+
+        <defs><marker id="ar-a2" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6Z" fill="#1C9C8C"/></marker></defs>
+      </svg>
+      <figcaption>Fig. 05 — modality tiers</figcaption>
+    </figure>
+
+    <p style="margin-top:22px"><strong>Takeaway:</strong> for most multimodal testing you don't need a special "audio attack" — you wrap an ordinary text attack with an audio or image converter. <code class="inl">BargeInAttack</code> is reserved for the native real-time streaming voice path. 0.14.0 ships converters for text→audio, audio echo / frequency / speed / volume / white-noise, image overlay / rotation / compression / resizing / style, and image→video.</p>
+
+    <div class="callout warn"><span class="ic">!</span><div><strong>Air-gapped note.</strong> The bundled <code class="inl">AzureSpeechTextToAudioConverter</code> / <code class="inl">AzureSpeechAudioToTextConverter</code> call Azure's cloud Speech service and won't run with no egress. Wrap a <em>local</em> TTS/STT model in a custom <code class="inl">PromptConverter</code> instead. The signal-processing audio converters (echo, frequency, speed, volume, white-noise) run fully offline.</div></div>
+  </div>
+</section>
+
+<!-- 06 EXAMPLES -->
+<section id="examples">
+  <div class="wrap reveal">
+    <div class="sec-head"><span class="sec-num">06</span><h2>Examples you can run</h2></div>
+    <p class="sub">Every constructor and keyword below was checked against the 0.14.0 source. Note 0.14.0 uses <code class="inl">initialize_pyrit_async</code> from <code class="inl">pyrit.setup</code> — that moved in recent versions.</p>
+
+    <div class="code">
+      <div class="bar"><span class="label">shared boilerplate</span></div>
+      <pre><span class="k">import</span> asyncio
+<span class="k">from</span> pyrit.setup <span class="k">import</span> initialize_pyrit_async, IN_MEMORY
+<span class="k">from</span> pyrit.prompt_target <span class="k">import</span> OpenAIChatTarget
+<span class="k">from</span> pyrit.executor.attack <span class="k">import</span> ConsoleAttackResultPrinter
+
+<span class="k">async def</span> <span class="f">setup</span>():
+    <span class="c"># IN_MEMORY keeps results in RAM; use SQLITE to persist a results DB.</span>
+    <span class="k">await</span> initialize_pyrit_async(IN_MEMORY)
+    target = OpenAIChatTarget(
+        endpoint=<span class="s">"https://your-internal-gateway/openai/v1/chat/completions"</span>,
+        api_key=<span class="s">"REPLACE_ME"</span>,
+        model_name=<span class="s">"your-target-model"</span>,
+    )
+    <span class="k">return</span> target</pre>
+    </div>
+
+    <h3>1 · Baseline — send the objective straight through</h3>
+    <div class="code">
+      <div class="bar"><span class="label">PromptSendingAttack</span><span class="tag noLLM">no attacker LLM</span></div>
+      <pre><span class="k">from</span> pyrit.executor.attack <span class="k">import</span> PromptSendingAttack
+
+<span class="k">async def</span> <span class="f">baseline</span>():
+    target = <span class="k">await</span> setup()
+    attack = PromptSendingAttack(objective_target=target)
+    result = <span class="k">await</span> attack.execute_async(
+        objective=<span class="s">"Explain how a pin-tumbler lock works."</span>
+    )
+    <span class="k">await</span> ConsoleAttackResultPrinter().print_result_async(result)
+
+asyncio.run(baseline())</pre>
+    </div>
+
+    <h3>2 · A static jailbreak — still no attacker LLM</h3>
+    <div class="code">
+      <div class="bar"><span class="label">FlipAttack</span><span class="tag noLLM">no attacker LLM</span></div>
+      <pre><span class="k">from</span> pyrit.executor.attack <span class="k">import</span> FlipAttack
+
+attack = FlipAttack(objective_target=target)
+result = <span class="k">await</span> attack.execute_async(
+    objective=<span class="s">"Describe how a phishing email is typically structured."</span>
+)</pre>
+    </div>
+
+    <h3>3 · Adaptive multi-turn — now there are two models</h3>
+    <p>The <span style="color:var(--attack-deep);font-weight:600">attacker LLM</span> writes the turns; the <span style="color:var(--attack-deep);font-weight:600">objective target</span> is the system under test. Same pattern applies to RedTeaming, TAP, PAIR, ContextCompliance and RolePlay.</p>
+    <div class="code">
+      <div class="bar"><span class="label">CrescendoAttack</span><span class="tag attLLM">attacker LLM required</span></div>
+      <pre><span class="k">from</span> pyrit.executor.attack <span class="k">import</span> (
+    CrescendoAttack, AttackAdversarialConfig, AttackScoringConfig,
+)
+<span class="k">from</span> pyrit.score <span class="k">import</span> SelfAskRefusalScorer
+
+attacker_llm = OpenAIChatTarget(            <span class="c"># a 2nd model — e.g. local Dolphin/Hermes via vLLM</span>
+    endpoint=<span class="s">"https://your-internal-gateway/openai/v1/chat/completions"</span>,
+    api_key=<span class="s">"REPLACE_ME"</span>, model_name=<span class="s">"your-attacker-model"</span>,
+)
+
+attack = CrescendoAttack(
+    objective_target=target,
+    attack_adversarial_config=AttackAdversarialConfig(target=attacker_llm),
+    attack_scoring_config=AttackScoringConfig(
+        refusal_scorer=SelfAskRefusalScorer(chat_target=attacker_llm),
+    ),
+    max_turns=<span class="n">10</span>, max_backtracks=<span class="n">10</span>,
+)
+result = <span class="k">await</span> attack.execute_async(objective=<span class="s">"&lt;your test objective&gt;"</span>)</pre>
+    </div>
+
+    <h3>4 · RolePlay with a bundled scenario file</h3>
+    <div class="code">
+      <div class="bar"><span class="label">RolePlayAttack</span><span class="tag attLLM">attacker LLM required</span></div>
+      <pre><span class="k">from</span> pyrit.executor.attack <span class="k">import</span> RolePlayAttack, RolePlayPaths, AttackAdversarialConfig
+
+attack = RolePlayAttack(
+    objective_target=target,
+    attack_adversarial_config=AttackAdversarialConfig(target=attacker_llm),
+    role_play_definition_path=RolePlayPaths.VIDEO_GAME.value,
+)
+result = <span class="k">await</span> attack.execute_async(objective=<span class="s">"&lt;your test objective&gt;"</span>)</pre>
+    </div>
+
+    <h3>5 · Deliver a text attack as audio (Tier-2)</h3>
+    <div class="code">
+      <div class="bar"><span class="label">PromptSendingAttack + converter</span><span class="tag noLLM">no attacker LLM</span></div>
+      <pre><span class="k">from</span> pyrit.executor.attack <span class="k">import</span> PromptSendingAttack, AttackConverterConfig
+<span class="k">from</span> pyrit.prompt_converter <span class="k">import</span> AzureSpeechTextToAudioConverter   <span class="c"># cloud; swap for air-gap</span>
+<span class="k">from</span> pyrit.prompt_normalizer <span class="k">import</span> PromptConverterConfiguration
+
+converters = PromptConverterConfiguration.from_converters(
+    converters=[AzureSpeechTextToAudioConverter()]
+)
+attack = PromptSendingAttack(
+    objective_target=target,
+    attack_converter_config=AttackConverterConfig(request_converters=converters),
+)</pre>
+    </div>
+
+    <h3>6 · The default multi-turn workhorse</h3>
+    <div class="code">
+      <div class="bar"><span class="label">RedTeamingAttack</span><span class="tag attLLM">attacker LLM required</span></div>
+      <pre><span class="k">from</span> pyrit.executor.attack <span class="k">import</span> RedTeamingAttack, AttackAdversarialConfig, AttackScoringConfig
+<span class="k">from</span> pyrit.score <span class="k">import</span> SelfAskRefusalScorer
+
+attack = RedTeamingAttack(
+    objective_target=target,
+    attack_adversarial_config=AttackAdversarialConfig(target=attacker_llm),
+    attack_scoring_config=AttackScoringConfig(
+        refusal_scorer=SelfAskRefusalScorer(chat_target=attacker_llm),
+    ),
+    max_turns=<span class="n">8</span>,
+)
+result = <span class="k">await</span> attack.execute_async(objective=<span class="s">"&lt;your test objective&gt;"</span>)</pre>
+    </div>
+
+    <div class="callout info"><span class="ic">i</span><div><strong>On SequentialAttack (advanced).</strong> Composing a cost ladder isn't a one-liner: each child is a <code class="inl">SequentialChildAttack(strategy=&lt;attack&gt;, seed_group=&lt;SeedAttackGroup&gt;)</code> — note <code class="inl">strategy=</code>, not <code class="inl">attack=</code> — and the <code class="inl">SeedAttackGroup</code> must carry exactly one objective. Get comfortable with the single attacks above first, then graduate to composing them.</div></div>
+  </div>
+</section>
+
+<!-- 07 LADDER -->
+<section id="ladder">
+  <div class="wrap reveal">
+    <div class="sec-head"><span class="sec-num">07</span><h2>How to pick — climb the cheapest ladder</h2></div>
+    <p class="sub">The guiding rule: spend the least compute that still finds the weakness. Static attacks are pennies; TAP is dollars. Climb only as far as you must.</p>
+
+    <figure class="schem">
+      <svg viewBox="0 0 880 300" role="img" aria-label="Escalation ladder from cheap static attacks up to tree search">
+        <defs><marker id="ar-d" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6Z" fill="#5A6B7E"/></marker></defs>
+        <!-- rungs -->
+        <g font-family="IBM Plex Sans">
+          <rect x="180" y="20" width="520" height="40" rx="4" fill="#fff" stroke="#0E7468" stroke-width="1.5"/>
+          <text x="200" y="45" font-size="13" fill="#15242F"><tspan font-weight="600">1 · Control</tspan> — PromptSendingAttack. Did it already comply?</text>
+
+          <rect x="180" y="76" width="520" height="40" rx="4" fill="#fff" stroke="#0E7468" stroke-width="1.5"/>
+          <text x="200" y="101" font-size="13" fill="#15242F"><tspan font-weight="600">2 · Cheap jailbreaks</tspan> — Flip · ManyShot · SkeletonKey.</text>
+
+          <rect x="180" y="132" width="520" height="40" rx="4" fill="#fff" stroke="#DD6B3D" stroke-width="1.5"/>
+          <text x="200" y="157" font-size="13" fill="#15242F"><tspan font-weight="600">3 · Adaptive multi-turn</tspan> — RedTeaming, then Crescendo.</text>
+
+          <rect x="180" y="188" width="520" height="40" rx="4" fill="#fff" stroke="#DD6B3D" stroke-width="1.5"/>
+          <text x="200" y="213" font-size="13" fill="#15242F"><tspan font-weight="600">4 · Heavy search</tspan> — TAP (or PAIR for a lighter run).</text>
+
+          <rect x="180" y="244" width="520" height="40" rx="4" fill="#0E1B27"/>
+          <text x="200" y="269" font-size="13" fill="#fff"><tspan font-weight="600" fill="#f0a578">Wrap it all</tspan> in a SequentialAttack so cheap wins skip the costly rungs.</text>
+        </g>
+        <!-- spine -->
+        <g stroke="#5A6B7E" stroke-width="1.5">
+          <line x1="120" y1="40" x2="120" y2="264" />
+          <line x1="120" y1="40" x2="176" y2="40" marker-end="url(#ar-d)"/>
+          <line x1="120" y1="96" x2="176" y2="96" marker-end="url(#ar-d)"/>
+          <line x1="120" y1="152" x2="176" y2="152" marker-end="url(#ar-d)"/>
+          <line x1="120" y1="208" x2="176" y2="208" marker-end="url(#ar-d)"/>
+          <line x1="120" y1="264" x2="176" y2="264" marker-end="url(#ar-d)"/>
+        </g>
+        <text x="70" y="150" font-size="11" fill="#5A6B7E" transform="rotate(-90 70 150)" text-anchor="middle" font-family="IBM Plex Mono">COST / EFFORT  →</text>
+      </svg>
+      <figcaption>Fig. 07 — escalation ladder</figcaption>
+    </figure>
+  </div>
+</section>
+
+<!-- 08 QUICK REF -->
+<section id="quickref">
+  <div class="wrap reveal">
+    <div class="sec-head"><span class="sec-num">08</span><h2>Quick reference</h2></div>
+    <p class="sub">The whole catalog at a glance — start cheap (top), climb only as far as needed.</p>
+    <table class="qr">
+      <thead><tr><th>Attacker LLM?</th><th>Attack</th><th>Turns</th></tr></thead>
+      <tbody>
+        <tr><td class="no">no</td><td>PromptSendingAttack</td><td>1</td></tr>
+        <tr><td class="no">no</td><td>FlipAttack</td><td>1</td></tr>
+        <tr><td class="no">no</td><td>ManyShotJailbreakAttack</td><td>1</td></tr>
+        <tr><td class="no">no</td><td>SkeletonKeyAttack</td><td>1</td></tr>
+        <tr><td class="no">optional</td><td>MultiPromptSendingAttack</td><td>many · scripted</td></tr>
+        <tr><td class="y">yes</td><td>ContextComplianceAttack</td><td>1 · adaptive</td></tr>
+        <tr><td class="y">yes</td><td>RolePlayAttack</td><td>1 · adaptive</td></tr>
+        <tr><td class="y">yes</td><td>RedTeamingAttack</td><td>many · adaptive</td></tr>
+        <tr><td class="y">yes</td><td>CrescendoAttack</td><td>many · adaptive</td></tr>
+        <tr><td class="y">yes</td><td>TreeOfAttacksWithPruningAttack</td><td>many · tree search</td></tr>
+        <tr><td class="y">yes</td><td>PAIRAttack</td><td>many · iterative</td></tr>
+        <tr><td class="no">no</td><td>ChunkedRequestAttack</td><td>1 · split</td></tr>
+        <tr><td class="no">no</td><td>SequentialAttack</td><td>depends on children</td></tr>
+        <tr><td class="audio">audio</td><td>BargeInAttack</td><td>streaming voice</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- GLOSSARY -->
+<section id="glossary">
+  <div class="wrap reveal">
+    <div class="sec-head"><span class="sec-num">09</span><h2>Glossary for newcomers</h2></div>
+    <div class="gloss">
+      <dl><dt>Objective</dt><dd>A sentence describing the behaviour you're trying to elicit, for testing.</dd></dl>
+      <dl><dt>Objective target</dt><dd>The AI system under test — the "victim."</dd></dl>
+      <dl><dt>Adversarial chat / attacker LLM</dt><dd>A separate model that writes the attack prompts. Needed only for adaptive attacks.</dd></dl>
+      <dl><dt>Scorer</dt><dd>An automated judge. Objective scorer: "did we succeed?" Refusal scorer: "did it refuse?"</dd></dl>
+      <dl><dt>Converter</dt><dd>A prompt transform applied before sending — encode, obfuscate, render to audio/image.</dd></dl>
+      <dl><dt>Single- / multi-turn</dt><dd>One message, vs. an ongoing conversation that adapts to replies.</dd></dl>
+      <dl><dt>Backtrack (Crescendo)</dt><dd>Undoing a turn that triggered resistance and trying a softer path.</dd></dl>
+      <dl><dt>Pruning (TAP)</dt><dd>Discarding weak or off-topic branches during a tree search.</dd></dl>
+      <dl><dt>RealtimeTarget</dt><dd>A target supporting live streaming audio sessions — what BargeInAttack drives.</dd></dl>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <p class="fnote">Verified against pyrit==0.14.0 · examples machine-checked against source constructor signatures · re-verify with inspect.signature() after any upgrade.</p>
+  </div>
+</footer>
+
+<script>
+  const io=new IntersectionObserver((es)=>{es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}})},{threshold:.08});
+  document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+</script>
+</body>
+</html>
