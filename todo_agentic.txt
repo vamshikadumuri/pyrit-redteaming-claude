@@ -1,0 +1,4 @@
+To ADD OTEL trace path for agent pluging
+To add Injection handles if possible
+To add ownership map, what roles have what access
+CREDENTIALS - Before testing need to know what principal you are to actually test if there any violations
