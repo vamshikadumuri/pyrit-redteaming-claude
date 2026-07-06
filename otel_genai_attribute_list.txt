@@ -1,0 +1,49 @@
+The full OTel GenAI attribute list (latest, as of today)
+You're right that I owed you this. Verified against the current spec (gen_ai.*, Development/experimental status, now in the semantic-conventions-genai repo). Grouped by span type. Opt-In = sensitive/large, off by default — you must enable these for red-teaming.
+Common (most spans)
+
+gen_ai.operation.name — chat | generate_content | text_completion | embeddings | retrieval | execute_tool | create_agent | invoke_agent | invoke_workflow
+gen_ai.provider.name — e.g. gcp.gen_ai, gcp.vertex_ai, openai, anthropic, aws.bedrock
+gen_ai.conversation.id — session correlation (ties an attack conversation together)
+gen_ai.agent.id, gen_ai.agent.name, gen_ai.agent.description
+gen_ai.data_source.id — RAG/grounding source
+error.type — on failure
+server.address, server.port
+
+Inference (chat / generate_content / text_completion)
+
+Request: gen_ai.request.model, gen_ai.request.temperature, gen_ai.request.top_p, gen_ai.request.top_k, gen_ai.request.max_tokens, gen_ai.request.stop_sequences, gen_ai.request.frequency_penalty, gen_ai.request.presence_penalty, gen_ai.request.seed, gen_ai.request.choice.count, gen_ai.output.type
+Response: gen_ai.response.id, gen_ai.response.model, gen_ai.response.finish_reasons, gen_ai.usage.input_tokens, gen_ai.usage.output_tokens
+Content (Opt-In): gen_ai.system_instructions, gen_ai.input.messages, gen_ai.output.messages
+
+Embeddings
+
+gen_ai.request.model, gen_ai.request.encoding_formats, gen_ai.embeddings.dimension.count, gen_ai.usage.input_tokens
+
+Retrieval (RAG)
+
+gen_ai.operation.name = retrieval, gen_ai.data_source.id
+gen_ai.retrieval.documents (Opt-In) — the retrieved docs
+
+Execute tool ← your most important span for P3/P4
+
+gen_ai.operation.name = execute_tool
+gen_ai.tool.name, gen_ai.tool.type (function | extension | datastore), gen_ai.tool.description, gen_ai.tool.call.id
+gen_ai.tool.call.arguments (Opt-In) ← the params your predicates read
+gen_ai.tool.call.result (Opt-In)
+
+Agent spans
+
+gen_ai.operation.name = create_agent | invoke_agent, plus gen_ai.agent.*, gen_ai.request.model, gen_ai.conversation.id
+
+MCP (if used)
+
+mcp.method.name, mcp.tool.name, mcp.session.id, mcp.request.id, mcp.protocol.version
+
+Evaluation ← where your grader verdicts get emitted
+
+gen_ai.evaluation.name, gen_ai.evaluation.score.value, gen_ai.evaluation.score.label, gen_ai.evaluation.explanation
+
+Metrics
+
+gen_ai.client.token.usage, gen_ai.client.operation.duration
