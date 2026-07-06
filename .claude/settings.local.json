@@ -1,13 +1,15 @@
 {
-  "enabledPlugins": {
-    "superpowers@superpowers-marketplace": true
-  },
   "permissions": {
     "allow": [
       "Bash(cp \"/root/.claude/uploads/dd7eca8d-6457-5880-bda4-595fcfcfeea3/92e01c2c-oteltraceschemanotes.md\" \"/home/user/pyrit-redteaming-claude/oteltraceschemanotes.md\")",
       "Bash(git -C /home/user/pyrit-redteaming-claude add oteltraceschemanotes.md)",
       "Bash(git -C /home/user/pyrit-redteaming-claude commit -m ' *)",
-      "Bash(git -C /home/user/pyrit-redteaming-claude push origin master)"
+      "Bash(git -C /home/user/pyrit-redteaming-claude push origin master)",
+      "Bash(cp \"/root/.claude/uploads/dd7eca8d-6457-5880-bda4-595fcfcfeea3/23f282ca-agent_vuln_injection_sheet.md\" \"/home/user/pyrit-redteaming-claude/agent_vuln_injection_sheet.md\")",
+      "Bash(git -C /home/user/pyrit-redteaming-claude add agent_vuln_injection_sheet.md)"
     ]
+  },
+  "enabledPlugins": {
+    "superpowers@superpowers-marketplace": true
   }
 }
