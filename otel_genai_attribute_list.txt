@@ -47,3 +47,10 @@ gen_ai.evaluation.name, gen_ai.evaluation.score.value, gen_ai.evaluation.score.l
 Metrics
 
 gen_ai.client.token.usage, gen_ai.client.operation.duration
+
+
+Package versions suitable:
+opentelemetry-api>=1.38.0
+opentelemetry-sdk>=1.38.0
+opentelemetry-semantic-conventions==0.64b0
+opentelemetry-exporter-otlp>=1.38.0
