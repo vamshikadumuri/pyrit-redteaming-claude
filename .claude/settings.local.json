@@ -8,7 +8,8 @@
       "Bash(cp \"/root/.claude/uploads/dd7eca8d-6457-5880-bda4-595fcfcfeea3/23f282ca-agent_vuln_injection_sheet.md\" \"/home/user/pyrit-redteaming-claude/agent_vuln_injection_sheet.md\")",
       "Bash(git -C /home/user/pyrit-redteaming-claude add agent_vuln_injection_sheet.md)",
       "Bash(cp \"/root/.claude/uploads/dd7eca8d-6457-5880-bda4-595fcfcfeea3/cbadead0-agentic_grading_design.md\" \"/home/user/pyrit-redteaming-claude/agentic_grading_design.md\")",
-      "Bash(cp \"/root/.claude/uploads/dd7eca8d-6457-5880-bda4-595fcfcfeea3/b59dea76-promptfoo_plugins_catalog_genai_trace.xlsx\" \"/home/user/pyrit-redteaming-claude/promptfoo_plugins_catalog_genai_trace.xlsx\")"
+      "Bash(cp \"/root/.claude/uploads/dd7eca8d-6457-5880-bda4-595fcfcfeea3/b59dea76-promptfoo_plugins_catalog_genai_trace.xlsx\" \"/home/user/pyrit-redteaming-claude/promptfoo_plugins_catalog_genai_trace.xlsx\")",
+      "Bash(cp \"/root/.claude/uploads/dd7eca8d-6457-5880-bda4-595fcfcfeea3/a97e7acf-AdaptiveRedTeamingPOC.pptx\" \"/home/user/pyrit-redteaming-claude/AdaptiveRedTeamingPOC.pptx\")"
     ]
   },
   "enabledPlugins": {
